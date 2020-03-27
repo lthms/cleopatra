@@ -1,0 +1,218 @@
+#+BEGIN_SRC makefile :tangle cleopatra.mk
+cleopatra-prebuild :
+	@echo "  export  cleopatra"
+	@${EMACS} -l "${ROOT}/scripts/org-publish.el" --batch >> build.log 2>&1
+
+CONFIGURE += .emacs.d/
+ARTIFACTS += code/ book/ .cache/
+
+cleopatra-build :
+	@echo "   cargo  build"
+	@cd code; cargo build 2>> ${ROOT}/build.log
+
+serve :
+	cd book/ ; python -m http.server
+#+END_SRC
+
+#+BEGIN_SRC emacs-lisp :tangle scripts/org-publish.el :noweb yes
+<<pkg-setup>>
+
+<<org-setup>>
+
+<<org-publish>>
+#+END_SRC
+
+* Packages
+
+#+NAME: pkg-setup
+#+BEGIN_SRC emacs-lisp
+(require 'package)
+
+(setq user-emacs-directory (concat (getenv "ROOT") "/.emacs.d"))
+(setq package-user-dir (concat (getenv "ROOT") "/.emacs.d"))
+(setq package-archives
+      '(("gnu"   . "https://elpa.gnu.org/packages/")
+        ("melpa" . "https://melpa.org/packages/")))
+
+(package-initialize)
+
+(or (file-exists-p package-user-dir)
+    (package-refresh-contents))
+
+(defun ensure-package-installed (&rest packages)
+  "Ensure every PACKAGES is installed."
+  (mapcar
+   (lambda (package)
+     (if (package-installed-p package)
+         nil
+       (package-install package))
+     package)
+   packages))
+
+(ensure-package-installed 'use-package)
+(eval-when-compile (require 'use-package))
+
+(use-package org :ensure t)
+(use-package htmlize :ensure t)
+(use-package rust-mode :ensure t :defer t)
+#+END_SRC
+
+#+NAME: org-setup
+#+BEGIN_SRC emacs-lisp
+(setq backup-inhibited t)
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((shell . t)))
+
+(defun cleopatra-html-src-block (oldfun src-block contents info)
+  (let*
+      ((old-ret (funcall oldfun src-block contents info))
+       (pars (org-babel-parse-header-arguments
+              (org-element-property :parameters src-block)))
+       (tangle (cdr (assoc :tangle pars)))
+       (name (cdr (assoc :name pars))))
+    (cond
+     (name
+      (concat
+       "<div class=\"org-literate-programming\">"
+       (format "<div class=\"org-src-name\">&lt;&lt%s&gt;&gt :=</div>" name)
+       old-ret
+       "</div>"))
+     ((not (string= tangle "no"))
+      (concat
+       "<div class=\"org-literate-programming\">"
+       old-ret
+       (format "<div class=\"org-src-tangled-to\">%s</div>" tangle)
+       "</div>"))
+     (t old-ret))))
+
+(setq org-export-with-sub-superscripts nil)
+(setq org-confirm-babel-evaluate nil)
+(setq org-publish-timestamp-directory ".cache/")
+(setq org-html-htmlize-output-type 'css)
+
+(advice-add 'org-html-src-block
+            :around #'cleopatra-html-src-block)
+
+(setq org-confirm-babel-evaluate nil)
+(setq org-src-preserve-indentation t)
+(add-to-list 'org-babel-default-header-args
+             '(:mkdirp . "yes"))
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((shell . t)))
+
+(defun org-my-tangle (_ filename pub-dir)
+  (with-temp-buffer
+    (find-file-read-only filename)
+    (unless (file-exists-p pub-dir)
+      (make-directory pub-dir))
+    (cd pub-dir)
+    (org-babel-tangle)))
+
+(setq org-babel-exp-code-template
+      (concat "#+BEGIN_SRC %lang%switches%flags "
+              ":tangle %tangle :name %name\n"
+              "%body\n"
+              "#+END_SRC"))
+#+END_SRC
+
+* Publishing Projects
+
+#+NAME: org-publish
+#+BEGIN_SRC emacs-lisp :noweb yes
+(setq org-publish-project-alist
+      '(("og-html"
+         <<html-properties>>)
+        ("og-tangle"
+         <<tangle-properties>>)))
+
+(org-publish-all)
+#+END_SRC
+
+** HTML
+
+#+NAME: html-properties#input
+#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
+:base-directory "src"
+#+END_SRC
+
+#+NAME: html-properties#output
+#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
+:publishing-directory "book"
+#+END_SRC
+
+#+NAME: html-properties#rec
+#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
+:recursive t
+#+END_SRC
+
+#+NAME: html-properties#output-format
+#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
+:publishing-function org-html-publish-to-html
+#+END_SRC
+
+#+NAME: html-properties#output-format
+#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
+:auto-preamble t
+#+END_SRC
+
+#+NAME: html-properties#html
+#+BEGIN_SRC emacs-lisp :noweb-ref html-properties :noweb no-export
+:html-link-home "/index.html"
+:html-head "<style>
+  <<style>>
+</style>"
+#+END_SRC
+
+#+NAME: style
+#+BEGIN_SRC css
+.org-src-name {
+  font-weight : bold;
+  font-family : monospace;
+  font-size : smaller;
+  margin-bottom : -1em;
+}
+
+.org-src-tangled-to::before {
+  content : \"> \";
+}
+
+.org-src-tangled-to {
+  font-weight : bold;
+  font-family : monospace;
+  font-size : smaller;
+  margin-top : -1em;
+  text-align : right;
+}
+
+#org-div-home-and-up {
+  z-index : 1000;
+  position : sticky;
+  top : 0;
+  background : white;
+}
+#+END_SRC
+
+** Tangled Files
+
+#+NAME: tangle-properties#input
+#+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
+:base-directory "src"
+#+END_SRC
+
+#+NAME: tangle-properties#output
+#+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
+:publishing-directory "code"
+#+END_SRC
+
+#+NAME: tangle-properties#rec
+#+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
+:recursive t
+#+END_SRC
+
+#+NAME: tangle-properties#output-format
+#+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
+:publishing-function org-my-tangle
+#+END_SRC

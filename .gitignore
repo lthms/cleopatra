@@ -1,6 +1,12 @@
 
 # begin generated files
 build.log
+code/
+book/
+.cache/
+.emacs.d/
+cleopatra.mk
+scripts/org-publish.el
 bootstrap.mk
 scripts/update-gitignore.sh
 # begin generated files

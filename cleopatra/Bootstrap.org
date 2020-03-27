@@ -276,6 +276,10 @@ are currently used to generate the website you are reading.
 3. Declaring build outputs (see ~ARTIFACTS~ and ~CONFIGURE~)
 #+END_TODO
 
+#+BEGIN_SRC makefile :tangle bootstrap.mk :noweb yes
+<<extends(IN="Cleopatra.org", PROC="cleopatra", AUX="scripts/org-publish.el")>>
+#+END_SRC
+
 ** Wrapping-up
 
 #+BEGIN_TODO
@@ -284,7 +288,6 @@ stages.
 #+END_TODO
 
 #+BEGIN_SRC bash :tangle scripts/update-gitignore.sh :shebang "#+/bin/bash"
-
 BEGIN_MARKER="# begin generated files"
 END_MARKER="# begin generated files"
 
