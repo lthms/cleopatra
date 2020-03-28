@@ -62,20 +62,8 @@ continuation as its argument, and call it once it has created an instance of
 #+BEGIN_SRC rust :noweb-ref find-project-proto
 pub fn find_project_then<A, K>(k : K) -> Result<A, Error>
 where
-    K : Copy + FnOnce(&Config) -> Result<A, Error>
+    K : FnOnce(&Config) -> Result<A, Error>
 #+END_SRC
-
-#+BEGIN_NOTE
-The fact that the continuation needs to implement =Copy= is due to the fact that
-~k~ is moved several times.
-
-Internally we use helpers functions to set-up the execution environment which
-takes a closure as arguments. We chain these helpers, meaning the call to the
-second helper is performed within the closure taken as argument by the first
-one, and so one until we finally call the continuation ~k~.
-
-From Rust perspective, it means ~k~ is moved \( n \) times.
-#+END_NOTE
 
 Using this approach allows us to setting-up a particular execution context. More
 precisely, we use =find_file= to find a ~cleopatra.toml~ file.  Then, we parse

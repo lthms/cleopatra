@@ -1,0 +1,90 @@
+#+TITLE: Cleopatry Binary
+
+* Command-line Interface
+
+#+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
+(version: "<<cleopatra-version()>>")
+(author: "Thomas Letan <lthms@soap.coffee")
+(about: "An extensible toolchain with facilities for literate programming")
+
+(@subcommand sh =>
+  (about: "Execute a shell command from the root of the current project")
+  (@arg CMD: +required +takes_value +multiple "The command to run"))
+#+END_SRC
+
+* Commands
+
+** ~cleopatra sh~
+
+~cleopatra sh CMD~ will execute ~CMD~ from the root of the current cleopatra
+project, with the environment variables defined in the cleopatra.toml set as
+expected.
+
+So, for instance
+
+#+BEGIN_SRC shell
+cleopatra sh printenv ROOT
+#+END_SRC
+
+will print the root of the project, that is the directory which contains
+~cleopatra.toml~.
+
+#+BEGIN_SRC rust :noweb-ref subcommands-func :exports none :noweb yes
+<<sh-proto>> {
+    <<sh-body>>
+}
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref sh-proto
+fn sh_subcommand(cmd : String) -> Result<(), Error>
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref sh-body
+Config::find_project_then(|_| {
+    Command::new("sh")
+        .arg("-c")
+        .arg(cmd.clone())
+        .status()
+        .or_raise("Could not execute submitted command")
+        .and_then(|status| {
+            if status.success() {
+                Ok(())
+            } else {
+                Err(Error::new(&format!("The command {:?} failed", cmd)))
+            }
+        })
+})
+#+END_SRC
+
+* The =main= of Cleopatra
+
+#+BEGIN_SRC rust :tangle app/main.rs :noweb yes :exports none
+#[macro_use] extern crate clap;
+
+use cleopatra::configuration::Config;
+use cleopatra::error::{Error, Raise};
+use std::process::Command;
+
+fn main() -> Result<(), Error> {
+    let matches = clap_app!(myapp =>
+        <<cli-specs>>
+    ).get_matches();
+
+    match matches.subcommand() {
+        ("sh", Some(args)) => {
+            sh_subcommand(
+                args.values_of("CMD")
+                    .unwrap()
+                    .map(String::from)
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            )
+        }
+        _ => unimplemented!(),
+    }?;
+
+    Ok(())
+}
+
+<<subcommands-func>>
+#+END_SRC
