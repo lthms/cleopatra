@@ -5,6 +5,9 @@ We introduce cleopatra, a generic, extensible toolchain with facilities for
 literate programming projects using [[https://orgmode.org/][Org mode]] and more.  The key concept of
 *~cleopatra~* is to write so-called generation processes as Makefile rules.
 
+The present document presents the source code of *~cleopatra~*
+call_cleopatra-version().
+
 - [[file:cleopatra-crate.org][1 – The cleopatra Crate]] ::
   Users interact with *~cleopatra~* through a command-line tool implemented in
   Rust. This chapter describes its implementation.

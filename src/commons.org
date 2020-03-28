@@ -9,6 +9,13 @@
     (substring str 1 (- len 1))))
 #+END_SRC
 
+* Miscellaneous
+
+#+NAME: cleopatra-version
+#+BEGIN_SRC emacs-lisp
+"1.0.0-dev"
+#+END_SRC
+
 * Rust
 
 ** Generating a Crate’s List of Dependencies

@@ -25,7 +25,7 @@ The rest of this chapter is dedicated to the implementation details of the crate
 #+BEGIN_SRC toml :tangle Cargo.toml :noweb yes :exports none
 [package]
 name = "cleopatra"
-version = "1.0.0-dev"
+version = "<<cleopatra-version()>>"
 edition = "2018"
 
 <<gen-cargo-deps(deps=dependencies-info)>>
