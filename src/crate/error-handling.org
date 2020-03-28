@@ -3,6 +3,7 @@
 #+HTML_LINK_UP: ../cleopatra-crate.html
 
 #+BEGIN_SRC rust :tangle src/error.rs :exports none
+#[derive(Debug)]
 pub struct Error(pub String);
 
 impl Error {

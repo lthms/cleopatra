@@ -6,6 +6,7 @@
 
 #+BEGIN_SRC rust :tangle src/configuration.rs :noweb yes :exports none
 use std::path::{Path, PathBuf};
+use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use crate::error::{Error, Raise};
 
@@ -14,6 +15,8 @@ use crate::error::{Error, Raise};
 impl Config {
   <<config-impl>>
 }
+
+<<helpers>>
 #+END_SRC
 
 A *~cleopatra~* project is configured with a configuration file called
@@ -28,17 +31,25 @@ The content of this file is encoded in Rust using the =Config= structure, with
 the following fields:
 
 #+NAME: conf-fields
-| ~pub generation_process~ | ~PathBuf~ | Path to the directory where the generation processes are defined |
+| ~pub generation_processes~  | ~PathBuf~                 | Path to the directory where the generation processes are defined                  |
+| ~#[serde(default)] pub env~ | ~HashMap<String, String>~ | Collection of environment variable to set before calling the generation processes |
 
 And default implementations for the following traits:
 
 #+NAME: conf-derive
 - ~Serialize~
 - ~Deserialize~
+- ~Debug~
 
 We proceed with the methods implemented for the type =Config=.
 
 ** Searching for a Project to Work With
+
+#+BEGIN_SRC rust :noweb-ref config-impl :exports none :noweb yes
+<<find-project-proto>> {
+  <<find-project-body>>
+}
+#+END_SRC
 
 =find_project_then= is a static method for =Config= which recursively looks for
 a configuration file (~cleopatra.toml~) up until the root of the
@@ -48,60 +59,45 @@ continuation as its argument, and call it once it has created an instance of
 =Config=.
 
 #+BEGIN_SRC rust :noweb-ref find-project-proto
-pub fn find_project_then<A, T>(k : T) -> Result<A, Error>
+pub fn find_project_then<A, K>(k : K) -> Result<A, Error>
 where
-    T : FnOnce(&Path, &Config) -> Result<A, Error>
+    K : Copy + FnOnce(&Path, &Config) -> Result<A, Error>
 #+END_SRC
+
+#+BEGIN_NOTE
+The fact that the continuation needs to implement =Copy= is due to the fact
+that the continuation ~k~ is moved several times. Indeed, internally we use
+helpers functions to set-up the execution environment which takes a closure as
+arguments. We chain these helpers, meaning the call to the second helper is
+performed within the closure taken as argument by the first one, and so one
+until we finally call the continuation ~k~. From Rust perspective, it means ~k~
+is moved \( n \) times.
+#+END_NOTE
 
 Using this approach allows us to setting-up a particular execution context. More
-precisely, =find_project_then= will temporary change the current working
-directory of the process for the root of the cleopatra project. The previous
-working directory is restored before =find_project_then= exits.
+precisely, we use =find_file= to find a ~cleopatra.toml~ file.  Then, we parse
+it as a TOML file, and chain helpers function which set-up the expected context,
+and restore the previous one once the continuation ~k~ returns.
 
 #+BEGIN_SRC rust :noweb-ref find-project-body
-let origin : PathBuf = std::env::current_dir()
-    .or_raise("Cannot get current directory")?;
+let path = find_file("cleopatra.toml")?;
+let project = Config::read_from_file(&path)?;
 
-let mut cwd : PathBuf = origin.clone();
+let root = path.parent()
+    .or_raise("Could not get the directory of the configuration file")?;
 
-loop {
-    cwd.push("cleopatra.toml"); // (*)
-
-    if cwd.exists() {
-        let project = Config::read_from_file(&cwd)?;
-
-        cwd.pop(); // we pop `cleopatra.toml` (see (*))
-        std::env::set_current_dir(&cwd)
-            .or_raise("Could not move to the root of the project")?;
-
-        let res = k(&cwd, &project);
-
-        std::env::set_current_dir(origin)
-            .or_raise("Could not return from the root of the project")?;
-
-        return res;
-    } else {
-        // We `pop` a first time for `cleopatra.toml`, since we have pushed
-        // previously it (see (*))
-        cwd.pop();
-
-        // We `pop` a second time to get the parent directory of cwd.  If
-        // `pop` returns false, we are at the root of the current FS, and
-        // there is no project file to find.
-        if !cwd.pop() {
-            return Err(Error::new("could not find cleopatra.toml"));
-        }
-    }
-}
+with_cwd(&root, || with_env(&project.env, || k(&root, &project)))
 #+END_SRC
 
-=find_project_then= makes use of a private method of =Config= called
-=read_from_file=, whose prototype and implementation are straightforward using
-the standard library, and the ~toml~ crate.
+Therefore, =find_project_then= relies on several helpers, whose types and
+implementation are relatively straightforward.
 
-#+BEGIN_SRC rust :noweb-ref config-impl :noweb yes
-fn read_from_file(file : &Path) -> Result<Config, Error> {
+=read_from_file= is defined as a method of the type =Config=, and essentially
+consists in calling the ~toml~ crate to parse the content of the file passed as
+argument.
 
+#+BEGIN_SRC rust :noweb-ref config-impl
+fn read_from_file(file : &Path) -> Result<Self, Error> {
     let content : String = std::fs::read_to_string(file)
         .or_raise(&format!(
             "Could not read the content of the configuration file {:?}",
@@ -113,8 +109,73 @@ fn read_from_file(file : &Path) -> Result<Config, Error> {
 }
 #+END_SRC
 
-#+BEGIN_SRC rust :noweb-ref config-impl :exports none :noweb yes
-<<find-project-proto>> {
-  <<find-project-body>>
+=find_file= is a regular function which recursively search for a file, from the
+current directory up to the root of the filesystem.
+
+#+BEGIN_SRC rust :noweb-ref helpers :noweb yes
+fn find_file(filename : &str) -> Result<PathBuf, Error> {
+    let mut cwd : PathBuf = std::env::current_dir()
+        .or_raise("Cannot get current directory")?;
+
+    loop {
+        let candidate = cwd.join(filename);
+
+        if candidate.exists() {
+            return Ok(candidate);
+        }
+
+        if !cwd.pop() {
+            return Err(Error::new("could not find cleopatra.toml"));
+        }
+    }
+}
+#+END_SRC
+
+The other helpers aim to set-up the execution context of the =find_project_then=
+continuation, and are defined as regular functions private to the
+~configuration~ module.
+
+#+BEGIN_SRC rust :noweb-ref helpers :noweb yes
+fn with_cwd<K, A>(target : &Path, k : K) -> Result<A, Error>
+where
+    K : FnOnce() -> Result<A, Error> {
+    let origin : PathBuf = std::env::current_dir()
+        .or_raise("Cannot get current directory")?;
+
+    std::env::set_current_dir(target)
+        .or_raise(&format!("Could not move to the directory {:?}", target))?;
+
+    let res = k();
+
+    std::env::set_current_dir(origin)
+        .or_raise(&format!("Could not return from the directory {:?}", target))?;
+
+    return res;
+}
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref helpers :noweb yes
+fn with_env<K, A>(env : &HashMap<String, String>, k : K) -> Result<A, Error>
+where
+    K : FnOnce() -> Result<A, Error> {
+    let context : HashMap<&String, Option<String>> = env
+        .iter()
+        .map(|(var, val)| {
+            let old = std::env::var(var).ok();
+            std::env::set_var(var, val);
+            (var, old)
+        })
+        .collect();
+
+    let res = k();
+
+    for (var, old) in context {
+        match old {
+            Some(val) => std::env::set_var(var, val),
+            None => std::env::remove_var(var),
+        }
+    }
+
+    return res;
 }
 #+END_SRC

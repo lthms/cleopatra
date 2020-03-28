@@ -29,6 +29,10 @@ version = "1.0.0-dev"
 edition = "2018"
 
 <<gen-cargo-deps(deps=dependencies-info)>>
+
+[[bin]]
+name = "cleopatra"
+path = "app/main.rs"
 #+END_SRC
 
 #+BEGIN_SRC rust :tangle src/lib.rs :exports none
