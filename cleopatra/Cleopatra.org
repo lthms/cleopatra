@@ -105,13 +105,19 @@ serve :
  'org-babel-load-languages
  '((shell . t)))
 
-(defun org-my-tangle (_ filename pub-dir)
-  (with-temp-buffer
-    (find-file-read-only filename)
-    (unless (file-exists-p pub-dir)
-      (make-directory pub-dir))
-    (cd pub-dir)
-    (org-babel-tangle)))
+;; We do not use the third argument since it is being updated by babel
+;; recursively (i.e., to tangle the file SRC/a/b.org, babel sets the third
+;; argument to PUB/a/, while we need just PUB.)
+;; We assume ROOT has been set by cleopatra
+(defun org-my-tangle (conf filename _pub-dir)
+  (let ((pub-dir (plist-get conf :publishing-directory)))
+    (with-temp-buffer
+      (find-file-read-only filename)
+      (unless (file-exists-p pub-dir)
+        (make-directory pub-dir))
+      (cd (getenv "ROOT")) ; in case pub-dir is relative (and it should be)
+      (cd pub-dir)
+      (org-babel-tangle))))
 
 (setq org-babel-exp-code-template
       (concat "#+BEGIN_SRC %lang%switches%flags "
