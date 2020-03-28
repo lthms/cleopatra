@@ -1,0 +1,37 @@
+#+TITLE: The Cleopatra Crate
+#+AUTHOR: Thomas Letan
+#+HTML_LINK_UP: index.html
+
+Rust library and tools of *~cleopatra~* current rely on the following crates.
+
+#+NAME: dependencies-info
+| ~clap~  | ~"2.33"~                                   | Parsing command-line arguments                    |
+| ~serde~ | ~{ version = "*", features = ["derive"] }~ | Serialization and deserialization for Rust values |
+| ~toml~  | ~"*"~                                      | Parsing ~cleopatra.toml~ files                    |
+
+The rest of this chapter is dedicated to the implementation details of the crate
+*~cleopatra~*, and proceeds as follows:
+
+- [[file:crate/error-handling.org][1 – Error Handling]] ::
+  Following Rust best practices, we handle error thanks to the ~Result~ type,
+  with an ad-hoc ~Error~ type. Reading this chapter is *mandatory* for anyone
+  willing to contribute to *~cleopatra~* as “shit happens” and we have to deal
+  with it.
+- [[file:crate/project.org][2 – Cleopatra Projects]] ::
+  *~cleopatra~* as a tools needs some notion of “project” —or “workspace”— to
+  work with. In this chapter, we specify how a *~cleopatra~* project works, and
+  provide the necessary Rust functions and types to manipulate them.
+
+#+BEGIN_SRC toml :tangle Cargo.toml :noweb yes :exports none
+[package]
+name = "cleopatra"
+version = "1.0.0-dev"
+edition = "2018"
+
+<<gen-cargo-deps(deps=dependencies-info)>>
+#+END_SRC
+
+#+BEGIN_SRC rust :tangle src/lib.rs :exports none
+pub mod error;
+pub mod configuration;
+#+END_SRC

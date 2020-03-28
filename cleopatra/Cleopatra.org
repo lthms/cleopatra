@@ -57,6 +57,8 @@ serve :
 (use-package rust-mode :ensure t :defer t)
 #+END_SRC
 
+* Setup
+
 #+NAME: org-setup
 #+BEGIN_SRC emacs-lisp
 (setq backup-inhibited t)
@@ -122,6 +124,8 @@ serve :
 
 #+NAME: org-publish
 #+BEGIN_SRC emacs-lisp :noweb yes
+(org-babel-lob-ingest "src/commons.org")
+
 (setq org-publish-project-alist
       '(("og-html"
          <<html-properties>>)
@@ -200,6 +204,7 @@ serve :
 #+NAME: tangle-properties#input
 #+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
 :base-directory "src"
+:exclude "commons.org"
 #+END_SRC
 
 #+NAME: tangle-properties#output

@@ -1,0 +1,75 @@
+#+TITLE: Cleopatra’s Library of Babel
+#+AUTHOR: Thomas Letan
+#+HTML_LINK_UP: index.html
+
+#+NAME: top-tail-fun
+#+BEGIN_SRC emacs-lisp
+(defun top-tail (str)
+  (let ((len (length str)))
+    (substring str 1 (- len 1))))
+#+END_SRC
+
+* Generating a Crate’s List of Dependencies
+
+#+NAME: deps-test
+| ~nom~  | ~"5"~ | Parsing something with style        |
+| ~clap~ | ~"*"~ | Dealing with command-line arguments |
+
+generates the following TOML entry.
+
+#+BEGIN_SRC toml :noweb yes
+<<gen-cargo-deps()>>
+#+END_SRC
+
+#+NAME: gen-cargo-deps
+#+BEGIN_SRC emacs-lisp :var deps=deps-test :noweb yes
+<<top-tail-fun>>
+
+(format
+ "[dependencies]\n%s"
+ (mapconcat (lambda (dep)
+              (format "%s = %s"
+                      (top-tail (nth 0 dep))
+                      (top-tail (nth 1 dep))))
+            deps
+            "\n"))
+#+END_SRC
+
+* Generating a Rust Structure
+
+#+NAME: derive-auto
+- ~Serialize~
+- ~Deserialize~
+
+#+NAME: struct-test
+| ~field1~ | ~isize~   | Some integer because why not |
+| ~field2~ | ~PathBuf~ | Let’s be parametric          |
+
+generates the following Rust struct
+
+#+BEGIN_SRC toml :noweb yes
+<<gen-rust-struct(derive=derive-auto)>>
+#+END_SRC
+
+#+NAME: gen-rust-struct
+#+BEGIN_SRC emacs-lisp :var pub='nil :var derive='nil :var fields=struct-test :var type-args="" :var name="Test" :noweb yes
+<<top-tail-fun>>
+
+(let* ((derive (format (mapconcat (lambda (x) (top-tail (car x))) derive ", ")))
+       (derive-str (if derive (format "#[derive(%s)]\n" derive) "")))
+  (format
+   "%s%sstruct %s%s {\n%s\n}"
+   derive-str
+   (if pub "pub " "")
+   name
+   type-args
+   (mapconcat (lambda (field)
+                (format
+                 "    /// %s\n    %s : %s,"
+                 (nth 2 field)
+                 (top-tail (nth 0 field))
+                 (top-tail (nth 1 field))))
+              fields
+              "\n"))))
+
+#+END_SRC

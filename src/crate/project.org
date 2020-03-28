@@ -1,0 +1,110 @@
+#+TITLE: Cleopatra Projects
+#+AUTHOR: Thomas Letan
+#+HTML_LINK_UP: ../cleopatra-crate.html
+
+* Configuration
+
+#+BEGIN_SRC rust :tangle src/configuration.rs :noweb yes :exports none
+use std::path::{Path, PathBuf};
+use serde::{Serialize, Deserialize};
+use crate::error::{Error, Raise};
+
+<<gen-rust-struct(pub='t, name="Config", fields=conf-fields, derive=conf-derive)>>
+
+impl Config {
+  <<config-impl>>
+}
+#+END_SRC
+
+A *~cleopatra~* project is configured with a configuration file called
+~cleopatra.toml~.
+
+** The ~cleopatra.toml~ File
+
+The ~cleopatra.toml~ file serves two purpose: it identifies the root of your
+project, and it contains configuration data that can be used by *~cleopatra~*.
+
+The content of this file is encoded in Rust using the =Config= structure, with
+the following fields:
+
+#+NAME: conf-fields
+| ~pub generation_process~ | ~PathBuf~ | Path to the directory where the generation processes are defined |
+
+And default implementations for the following traits:
+
+#+NAME: conf-derive
+- ~Serialize~
+- ~Deserialize~
+
+** Parsing a ~cleopatra.toml~ File
+
+#+BEGIN_SRC rust :noweb-ref config-impl :exports none :noweb yes
+<<read-from-file-proto>> {
+  <<read-from-file-body>>
+}
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref read-from-file-proto
+pub fn read_from_file(file : &Path) -> Result<Config, Error>
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref read-from-file-body
+let content : String = std::fs::read_to_string(file)
+    .or_raise(&format!(
+        "Could not read the content of the configuration file {:?}",
+        file
+    ))?;
+
+toml::from_str(content.as_str())
+    .or_raise(&format!("could not parse {:?}", file))
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref config-impl :exports none :noweb yes
+<<find-project-proto>> {
+  <<find-project-body>>
+}
+#+END_SRC
+
+** Searching for a Project to Work With
+
+#+BEGIN_SRC rust :noweb-ref find-project-proto
+pub fn find_project_then<A, T>(k : T) -> Result<A, Error>
+where T : FnOnce(&Path, Config) -> Result<A, Error>
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref find-project-body
+let origin : PathBuf = std::env::current_dir()
+    .or_raise("Cannot get current directory")?;
+
+let mut cwd : PathBuf = origin.clone();
+
+loop {
+    cwd.push("cleopatra.toml"); // (*)
+
+    if cwd.exists() {
+        let project = Config::read_from_file(&cwd)?;
+
+        cwd.pop(); // we pop `cleopatra.toml` (see (*))
+        std::env::set_current_dir(&cwd)
+            .or_raise("Could not move to the root of the project")?;
+
+        let res = k(&cwd, project);
+
+        std::env::set_current_dir(origin)
+            .or_raise("Could not return from the root of the project")?;
+
+        return res;
+    } else {
+        // We `pop` a first time for `cleopatra.toml`, since we have pushed
+        // previously it (see (*))
+        cwd.pop();
+
+        // We `pop` a second time to get the parent directory of cwd.  If
+        // `pop` returns false, we are at the root of the current FS, and
+        // there is no project file to find.
+        if !cwd.pop() {
+            return Err(Error::new("could not find cleopatra.toml"));
+        }
+    }
+}
+#+END_SRC
