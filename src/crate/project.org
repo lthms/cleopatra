@@ -36,41 +36,27 @@ And default implementations for the following traits:
 - ~Serialize~
 - ~Deserialize~
 
-** Parsing a ~cleopatra.toml~ File
-
-#+BEGIN_SRC rust :noweb-ref config-impl :exports none :noweb yes
-<<read-from-file-proto>> {
-  <<read-from-file-body>>
-}
-#+END_SRC
-
-#+BEGIN_SRC rust :noweb-ref read-from-file-proto
-pub fn read_from_file(file : &Path) -> Result<Config, Error>
-#+END_SRC
-
-#+BEGIN_SRC rust :noweb-ref read-from-file-body
-let content : String = std::fs::read_to_string(file)
-    .or_raise(&format!(
-        "Could not read the content of the configuration file {:?}",
-        file
-    ))?;
-
-toml::from_str(content.as_str())
-    .or_raise(&format!("could not parse {:?}", file))
-#+END_SRC
-
-#+BEGIN_SRC rust :noweb-ref config-impl :exports none :noweb yes
-<<find-project-proto>> {
-  <<find-project-body>>
-}
-#+END_SRC
+We proceed with the methods implemented for the type =Config=.
 
 ** Searching for a Project to Work With
 
+=find_project_then= is a static method for =Config= which recursively looks for
+a configuration file (~cleopatra.toml~) up until the root of the
+filesystem. This function uses what we will call the ~with~ pattern: rather than
+returning a result for its caller to use, =find_project_then= takes a
+continuation as its argument, and call it once it has created an instance of
+=Config=.
+
 #+BEGIN_SRC rust :noweb-ref find-project-proto
 pub fn find_project_then<A, T>(k : T) -> Result<A, Error>
-where T : FnOnce(&Path, Config) -> Result<A, Error>
+where
+    T : FnOnce(&Path, &Config) -> Result<A, Error>
 #+END_SRC
+
+Using this approach allows us to setting-up a particular execution context. More
+precisely, =find_project_then= will temporary change the current working
+directory of the process for the root of the cleopatra project. The previous
+working directory is restored before =find_project_then= exits.
 
 #+BEGIN_SRC rust :noweb-ref find-project-body
 let origin : PathBuf = std::env::current_dir()
@@ -88,7 +74,7 @@ loop {
         std::env::set_current_dir(&cwd)
             .or_raise("Could not move to the root of the project")?;
 
-        let res = k(&cwd, project);
+        let res = k(&cwd, &project);
 
         std::env::set_current_dir(origin)
             .or_raise("Could not return from the root of the project")?;
@@ -106,5 +92,29 @@ loop {
             return Err(Error::new("could not find cleopatra.toml"));
         }
     }
+}
+#+END_SRC
+
+=find_project_then= makes use of a private method of =Config= called
+=read_from_file=, whose prototype and implementation are straightforward using
+the standard library, and the ~toml~ crate.
+
+#+BEGIN_SRC rust :noweb-ref config-impl :noweb yes
+fn read_from_file(file : &Path) -> Result<Config, Error> {
+
+    let content : String = std::fs::read_to_string(file)
+        .or_raise(&format!(
+            "Could not read the content of the configuration file {:?}",
+            file
+        ))?;
+
+    toml::from_str(content.as_str())
+        .or_raise(&format!("could not parse {:?}", file))
+}
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref config-impl :exports none :noweb yes
+<<find-project-proto>> {
+  <<find-project-body>>
 }
 #+END_SRC

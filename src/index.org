@@ -1,14 +1,18 @@
-#+TITLE: cleopatra
+#+TITLE: cleopatra: An Extensible Toolchain
 #+AUTHOR: Thomas Letan
 
-We introduce *~cleopatra~*, a generic, extensible toolchain for literate
-programming project using [[https://orgmode.org/][Org mode]].  The key concept of *~cleopatra~* is to
-write so-called generation processes as Makefile rules.
+We introduce cleopatra, a generic, extensible toolchain with facilities for
+literate programming projects using [[https://orgmode.org/][Org mode]] and more.  The key concept of
+*~cleopatra~* is to write so-called generation processes as Makefile rules.
 
-- [[file:cleopatra-crate.org][1 – The Cleopatra Crate]] ::
+- [[file:cleopatra-crate.org][1 – The cleopatra Crate]] ::
   Users interact with *~cleopatra~* through a command-line tool implemented in
   Rust. This chapter describes its implementation.
-- [[file:commons.org][2 — Cleopatra’s Library of Babel]] ::
+- [[file:cleopatra-elisp.org][2 — cleopatra’s Elisp Package]] ::
+  Under the hood, Cleopatra relies on Emacs to tangle the Org documents which
+  specify user-defined generation processes. This chapter describes the
+  Elisp configuration code used to that end.
+- [[file:commons.org][3 — cleopatra’s Library of Babel]] ::
   Cleopatra is implemented using the literate programming paradigm. In
   particular, we use the ~noweb~ feature of Babel. This chapter introduces
   several source block that can be evaluated by Emacs at tangling and exporting

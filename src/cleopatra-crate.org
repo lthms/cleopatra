@@ -1,4 +1,4 @@
-#+TITLE: The Cleopatra Crate
+#+TITLE: The cleopatra Crate
 #+AUTHOR: Thomas Letan
 #+HTML_LINK_UP: index.html
 
@@ -17,7 +17,7 @@ The rest of this chapter is dedicated to the implementation details of the crate
   with an ad-hoc ~Error~ type. Reading this chapter is *mandatory* for anyone
   willing to contribute to *~cleopatra~* as “shit happens” and we have to deal
   with it.
-- [[file:crate/project.org][2 – Cleopatra Projects]] ::
+- [[file:crate/project.org][2 – cleopatra Projects]] ::
   *~cleopatra~* as a tools needs some notion of “project” —or “workspace”— to
   work with. In this chapter, we specify how a *~cleopatra~* project works, and
   provide the necessary Rust functions and types to manipulate them.

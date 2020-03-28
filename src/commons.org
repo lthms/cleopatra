@@ -9,7 +9,9 @@
     (substring str 1 (- len 1))))
 #+END_SRC
 
-* Generating a Crate’s List of Dependencies
+* Rust
+
+** Generating a Crate’s List of Dependencies
 
 #+NAME: deps-test
 | ~nom~  | ~"5"~ | Parsing something with style        |
@@ -35,7 +37,7 @@ generates the following TOML entry.
             "\n"))
 #+END_SRC
 
-* Generating a Rust Structure
+** Generating a Rust Structure
 
 #+NAME: derive-auto
 - ~Serialize~
