@@ -7,40 +7,70 @@
 (author: "Thomas Letan <lthms@soap.coffee")
 (about: "An extensible toolchain with facilities for literate programming")
 
-(@subcommand sh =>
-  (about: "Execute a shell command from the root of the current project")
+(@subcommand exec =>
+  (about: "Execute a command from the root of the current project")
   (@arg CMD: +required +takes_value +multiple "The command to run"))
 #+END_SRC
 
 * Commands
 
-** ~cleopatra sh~
+** ~cleopatra~
 
-~cleopatra sh CMD~ will execute ~CMD~ from the root of the current cleopatra
+~cleopatra~ will executes the default command, that is building the current
+project.
+
+#+BEGIN_SRC rust :noweb-ref subcommands-func :exports none :noweb yes
+<<build-proto>> {
+    <<build-body>>
+}
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref build-proto
+fn build_subcommand() -> Result<(), Error>
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref build-body
+Config::find_project_then(|project| {
+    exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])
+})
+#+END_SRC
+
+** ~cleopatra exec~
+
+~cleopatra exec CMD~ will execute ~CMD~ from the root of the current cleopatra
 project, with the environment variables defined in the cleopatra.toml set as
 expected.
 
 So, for instance
 
 #+BEGIN_SRC shell
-cleopatra sh printenv ROOT
+cleopatra exec printenv ROOT
 #+END_SRC
 
 will print the root of the project, that is the directory which contains
 ~cleopatra.toml~.
 
 #+BEGIN_SRC rust :noweb-ref subcommands-func :exports none :noweb yes
-<<sh-proto>> {
-    <<sh-body>>
+<<exec-proto>> {
+    <<exec-body>>
 }
 #+END_SRC
 
-#+BEGIN_SRC rust :noweb-ref sh-proto
+#+BEGIN_SRC rust :noweb-ref exec-proto
 fn sh_subcommand(cmd : &[&str]) -> Result<(), Error>
 #+END_SRC
 
-#+BEGIN_SRC rust :noweb-ref sh-body
+#+BEGIN_SRC rust :noweb-ref exec-body
 Config::find_project_then(|_| {
+    exec(cmd)
+})
+#+END_SRC
+
+* Helpers
+** =exec=
+
+#+BEGIN_SRC rust :noweb-ref helpers
+fn exec(cmd : &[&str]) -> Result<(), Error> {
     Command::new(cmd[0])
         .args(cmd.split_at(1).1)
         .status()
@@ -52,7 +82,7 @@ Config::find_project_then(|_| {
                 Err(Error::new(&format!("The command {:?} failed", cmd)))
             }
         })
-})
+}
 #+END_SRC
 
 * The =main= of Cleopatra
@@ -70,13 +100,13 @@ fn main() -> Result<(), Error> {
     ).get_matches();
 
     match matches.subcommand() {
-        ("sh", Some(args)) => {
+        ("", _) => build_subcommand(),
+        ("exec", Some(args)) =>
             sh_subcommand(
                 &args.values_of("CMD")
                     .unwrap()
                     .collect::<Vec<&str>>()
-            )
-        }
+            ),
         _ => unimplemented!(),
     }?;
 
@@ -84,4 +114,6 @@ fn main() -> Result<(), Error> {
 }
 
 <<subcommands-func>>
+
+<<helpers>>
 #+END_SRC

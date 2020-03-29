@@ -1,4 +1,8 @@
 (use-package rust-mode :ensure t :defer t)
+(use-package espresso-theme
+  :ensure t
+  :config
+  (load-theme 'espresso t))
 
 (cleopatra:configure)
 
@@ -40,7 +44,7 @@
 (org-babel-lob-ingest "src/commons.org")
 
 (setq org-publish-project-alist
-      '(("og-html"
+      '(("cleopatra-book"
          :base-directory "src"
          :publishing-directory "book"
          :recursive t
@@ -74,7 +78,40 @@
              background : white;
            }
          </style>")
-        ("og-tangle"
+        ("cleopatra-proc"
+         :base-directory "procs"
+         :publishing-directory "book/procs"
+         :publishing-function org-html-publish-to-html
+         :auto-preamble t
+         :html-link-home "/index.html"
+         :html-head "<style>
+           .org-src-name {
+             font-weight : bold;
+             font-family : monospace;
+             font-size : smaller;
+             margin-bottom : -1em;
+           }
+           
+           .org-src-tangled-to::before {
+             content : \"> \";
+           }
+           
+           .org-src-tangled-to {
+             font-weight : bold;
+             font-family : monospace;
+             font-size : smaller;
+             margin-top : -1em;
+             text-align : right;
+           }
+           
+           #org-div-home-and-up {
+             z-index : 1000;
+             position : sticky;
+             top : 0;
+             background : white;
+           }
+         </style>")
+        ("cleopatra-code"
          :base-directory "src"
          :exclude "commons.org"
          :publishing-directory "code"

@@ -2,7 +2,9 @@
 #+AUTHOR: Thomas Letan
 #+HTML_LINK_UP: index.html
 
-#+BEGIN_SRC emacs-lisp :tangle cleopatra.el :noweb yes :exports none
+* ~cleopatra.el~
+
+#+BEGIN_SRC emacs-lisp :tangle elisp/cleopatra.el :noweb yes :exports none
 ;;; cleopatra.el --- The cleopatra Emacs Library
 ;;; Commentary:
 ;;; Code:
@@ -14,7 +16,7 @@
 ;;; cleopatra.el ends here
 #+END_SRC
 
-* Init
+** Init
 
 #+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el :exports none :noweb yes
 (defun cleopatra:ensure-package-installed (&rest packages)
@@ -53,7 +55,7 @@
 (use-package htmlize :ensure t)
 #+END_SRC
 
-* Org Configuration
+** Org Configuration
 
 We provide a “sensible” (that is, to our opinion) default configuration for Org
 mode and Babel.
@@ -61,6 +63,7 @@ mode and Babel.
 #+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el
 (defun cleopatra:configure ()
   (setq backup-inhibited t)
+  (setq org-src-fontify-natively t)
   (setq org-export-with-sub-superscripts nil)
   (setq org-confirm-babel-evaluate nil)
   (setq org-publish-timestamp-directory
@@ -71,7 +74,7 @@ mode and Babel.
                '(:mkdirp . "yes")))
 #+END_SRC
 
-* Tangling Process
+** Tangling
 
 *~cleopatra~* “tangling semantics” slightly differs from Babel’s default
 one. The key difference is that, contrary to Babel, *~cleopatra~* does not force
@@ -89,7 +92,7 @@ For instance, let ~IN~ be is the directory wherein lives your literate sources,
 
 ** =cleopatra:tangle-publish=
 
-=cleopatra-tangle-publish= is a function to be used with =org-publish=. To
+=cleopatra:tangle-publish= is a function to be used with =org-publish=. To
 implement the desire behavior, it does not use the third argument (which is
 updated by Babel to take into account the structure of the literate programming
 source), but we rather use the first argument which contains the component
@@ -108,14 +111,6 @@ configuration, and this configuration needs to contains a field
           (cd pub-dir)
           (org-babel-tangle))
       (error "cleopatra: missing :publishing-directory option"))))
-#+END_SRC
-
-** TODO =cleopatra:gen-processes-tangle-publish=
-
-#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el
-(defun cleopatra:gen-processes-tangle-publish (conf filename pub-dir)
-  (let ((tangled (cleopatra-tangle-publish conf filename pub-dir)))
-    (print "TODO: generate dependency files")))
 #+END_SRC
 
 * The ~cleopatra-emacs~ Binary

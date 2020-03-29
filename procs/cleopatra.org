@@ -1,24 +1,25 @@
 #+BEGIN_SRC makefile :tangle cleopatra.mk
 cleopatra-prebuild :
 	@echo "  export  cleopatra"
-	@cleopatra sh -- cleopatra-run-elisp gen.el
+	@cleopatra exec -- cleopatra-run-elisp gen.el
 
 CONFIGURE += .emacs.d/
 ARTIFACTS += code/ book/ .cache/
 
 cleopatra-build :
 	@echo "   cargo  build"
-	@cd code/; cargo build 2>> ${ROOT}/build.log
+	@cd code/; cargo install --path . 2>> ${ROOT}/build.log
 	@cd code/; cargo doc 2>> ${ROOT}/build.log
 	@echo " install  cleopatra files"
-	@cp code/cleopatra.el .cleopatra/emacs.d
+	@cp code/elisp/*.el .cleopatra/emacs.d
 	@cp code/bin/* .cleopatra/bin
+	@cp code/boot.mk .cleopatra/
 
 serve :
 	cd book/ ; python -m http.server
 #+END_SRC
 
-#+BEGIN_SRC emacs-lisp :tangle .cleopatra/emacs.d/gen.el :noweb yes
+#+BEGIN_SRC emacs-lisp :tangle emacs.d/gen.el :noweb yes
 <<setup>>
 
 <<publish>>
@@ -30,6 +31,10 @@ serve :
 
 #+BEGIN_SRC emacs-lisp :noweb-ref setup
 (use-package rust-mode :ensure t :defer t)
+(use-package espresso-theme
+  :ensure t
+  :config
+  (load-theme 'espresso t))
 
 (cleopatra:configure)
 
@@ -75,30 +80,22 @@ serve :
 (org-babel-lob-ingest "src/commons.org")
 
 (setq org-publish-project-alist
-      '(("og-html"
+      '(("cleopatra-book"
+         :base-directory "src"
+         :publishing-directory "book"
+         :recursive t
          <<html-properties>>)
-        ("og-tangle"
+        ("cleopatra-proc"
+         :base-directory "procs"
+         :publishing-directory "book/procs"
+         <<html-properties>>)
+        ("cleopatra-code"
          <<tangle-properties>>)))
 
 (org-publish-all)
 #+END_SRC
 
 ** HTML
-
-#+NAME: html-properties#input
-#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
-:base-directory "src"
-#+END_SRC
-
-#+NAME: html-properties#output
-#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
-:publishing-directory "book"
-#+END_SRC
-
-#+NAME: html-properties#rec
-#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
-:recursive t
-#+END_SRC
 
 #+NAME: html-properties#output-format
 #+BEGIN_SRC emacs-lisp :noweb-ref html-properties

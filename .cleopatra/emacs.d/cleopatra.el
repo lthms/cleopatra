@@ -33,6 +33,7 @@
 (use-package htmlize :ensure t)
 (defun cleopatra:configure ()
   (setq backup-inhibited t)
+  (setq org-src-fontify-natively t)
   (setq org-export-with-sub-superscripts nil)
   (setq org-confirm-babel-evaluate nil)
   (setq org-publish-timestamp-directory
@@ -52,9 +53,6 @@
           (cd pub-dir)
           (org-babel-tangle))
       (error "cleopatra: missing :publishing-directory option"))))
-(defun cleopatra:gen-processes-tangle-publish (conf filename pub-dir)
-  (let ((tangled (cleopatra-tangle-publish conf filename pub-dir)))
-    (print "TODO: generate dependency files")))
 
 (provide 'cleopatra)
 ;;; cleopatra.el ends here

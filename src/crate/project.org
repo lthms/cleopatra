@@ -108,12 +108,29 @@ modifies it to be properly used by *~cleopatra~* afterwards. Indeed,
 
   - A ~ROOT~ entry in the ~env~ hash map which points to the root of the
     cleopatra project
+  - A ~CLEOPATRA_DIRECTORY~ in the ~env~ hash map wihch is set to
+    ~${ROOT}/.cleopatra~
+  - A ~CLEOPATRA_GENERATION_PROCESSES~ in the ~env~ hash map wihch is set to
+    ~project.generation_processes~
   - A ~PATH~ entry in the ~env~ hash map which adds ~${ROOT}/.cleopatra/bin~ to
     the current ~PATH~
 
 #+BEGIN_SRC rust :noweb-ref config-impl
 fn prepare(&mut self, root : &Path) -> Result<(), Error> {
-    self.env.insert(String::from("ROOT"), OsString::from(root));
+    self.env.insert(
+        String::from("ROOT"),
+        OsString::from(root)
+    );
+
+    self.env.insert(
+        String::from("CLEOPATRA_DIRECTORY"),
+        OsString::from(root.join(".cleopatra"))
+    );
+
+    self.env.insert(
+        String::from("CLEOPATRA_GENERATION_PROCESSES"),
+        OsString::from(self.generation_processes.clone())
+    );
 
     std::env::var_os("PATH")
         .as_ref()
