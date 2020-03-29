@@ -36,14 +36,13 @@ will print the root of the project, that is the directory which contains
 #+END_SRC
 
 #+BEGIN_SRC rust :noweb-ref sh-proto
-fn sh_subcommand(cmd : String) -> Result<(), Error>
+fn sh_subcommand(cmd : &[&str]) -> Result<(), Error>
 #+END_SRC
 
 #+BEGIN_SRC rust :noweb-ref sh-body
 Config::find_project_then(|_| {
-    Command::new("sh")
-        .arg("-c")
-        .arg(cmd.clone())
+    Command::new(cmd[0])
+        .args(cmd.split_at(1).1)
         .status()
         .or_raise("Could not execute submitted command")
         .and_then(|status| {
@@ -73,11 +72,9 @@ fn main() -> Result<(), Error> {
     match matches.subcommand() {
         ("sh", Some(args)) => {
             sh_subcommand(
-                args.values_of("CMD")
+                &args.values_of("CMD")
                     .unwrap()
-                    .map(String::from)
-                    .collect::<Vec<String>>()
-                    .join(" ")
+                    .collect::<Vec<&str>>()
             )
         }
         _ => unimplemented!(),

@@ -1,0 +1,2 @@
+#!/bin/sh
+emacs -Q --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" $@

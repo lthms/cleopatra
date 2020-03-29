@@ -29,10 +29,10 @@
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el
-(defvar cleopatra:*emacs-dir* (concat (getenv "ROOT") "/.cleopatra/emacs.d"))
+(defvar cleopatra:*emacs-dir* (concat (getenv "ROOT") "/.cleopatra/emacs.d/"))
 
 (setq user-emacs-directory cleopatra:*emacs-dir*)
-(setq package-user-dir (concat cleopatra:*emacs-dir* "/packages"))
+(setq package-user-dir (concat cleopatra:*emacs-dir* "packages"))
 
 (setq package-archives
       '(("gnu"   . "https://elpa.gnu.org/packages/")
@@ -58,14 +58,17 @@
 We provide a “sensible” (that is, to our opinion) default configuration for Org
 mode and Babel.
 
-#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-rel
-(fun cleopatra:org-configuration ()
+#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el
+(defun cleopatra:configure ()
+  (setq backup-inhibited t)
   (setq org-export-with-sub-superscripts nil)
   (setq org-confirm-babel-evaluate nil)
   (setq org-publish-timestamp-directory
-        (concat cleopatra:*emacs-dir* ".cache/"))
+        (concat cleopatra:*emacs-dir* "cache/"))
   (setq org-confirm-babel-evaluate nil)
-  (setq org-src-preserve-indentation t))
+  (setq org-src-preserve-indentation t)
+  (add-to-list 'org-babel-default-header-args
+               '(:mkdirp . "yes")))
 #+END_SRC
 
 * Tangling Process
@@ -84,7 +87,7 @@ For instance, let ~IN~ be is the directory wherein lives your literate sources,
     to reflect the fact that ~b.org~ lives in ~a~
   - *~cleopatra~* won’t, and ~d.txt~ will be placed in ~OUT/c/~
 
-** =cleopatra-tangle-publish=
+** =cleopatra:tangle-publish=
 
 =cleopatra-tangle-publish= is a function to be used with =org-publish=. To
 implement the desire behavior, it does not use the third argument (which is
@@ -107,7 +110,7 @@ configuration, and this configuration needs to contains a field
       (error "cleopatra: missing :publishing-directory option"))))
 #+END_SRC
 
-** TODO =cleopatra-gen-processes-tangle-publish=
+** TODO =cleopatra:gen-processes-tangle-publish=
 
 #+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el
 (defun cleopatra:gen-processes-tangle-publish (conf filename pub-dir)
@@ -126,4 +129,10 @@ and tangling (this may be useful for debugging).
 
 #+BEGIN_SRC bash :tangle bin/cleopatra-emacs :shebang "#!/bin/sh"
 emacs -Q --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" $@
+#+END_SRC
+
+#+BEGIN_SRC bash :tangle bin/cleopatra-run-elisp :shebang "#!/bin/sh"
+emacs -Q --batch \
+         --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" \
+         --load="${ROOT}/.cleopatra/emacs.d/${1}"
 #+END_SRC
