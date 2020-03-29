@@ -1,4 +1,6 @@
 #+TITLE: Cleopatry Binary
+#+AUTHOR: Thomas Letan
+#+HTML_LINK_UP: index.html
 
 * Command-line Interface
 
@@ -31,7 +33,9 @@ fn build_subcommand() -> Result<(), Error>
 
 #+BEGIN_SRC rust :noweb-ref build-body
 Config::find_project_then(|project| {
-    exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])
+    // TODO: CLEOPATRA_DIRECTORY is hardcoded here
+    exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])?;
+    exec(&vec!["make", "-f", ".cleopatra/boot.mk", "postbuild"])
 })
 #+END_SRC
 

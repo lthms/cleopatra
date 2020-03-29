@@ -1,7 +1,13 @@
+#+TITLE: Cleopatra’s Export Process
+#+AUTHOR: Thomas Letan
+#+HTML_LINK_UP: ../procs.html
+
+* ~cleopatra.mk~
+
 #+BEGIN_SRC makefile :tangle cleopatra.mk
 cleopatra-prebuild :
 	@echo "  export  cleopatra"
-	@cleopatra exec -- cleopatra-run-elisp gen.el
+	@cleopatra exec -- cleopatra-run-elisp gen.el 2>> build.log
 
 CONFIGURE += .emacs.d/
 ARTIFACTS += code/ book/ .cache/
@@ -19,7 +25,9 @@ serve :
 	cd book/ ; python -m http.server
 #+END_SRC
 
-#+BEGIN_SRC emacs-lisp :tangle emacs.d/gen.el :noweb yes
+** ~gen.el~
+
+#+BEGIN_SRC emacs-lisp :tangle emacs.d/gen.el :noweb yes :exports none
 <<setup>>
 
 <<publish>>
@@ -27,7 +35,7 @@ serve :
 (provide 'gen)
 #+END_SRC
 
-* Setup
+** Setup
 
 #+BEGIN_SRC emacs-lisp :noweb-ref setup
 (use-package rust-mode :ensure t :defer t)
@@ -74,9 +82,9 @@ serve :
               "#+END_SRC"))
 #+END_SRC
 
-* Publishing Projects
+** Publishing Projects
 
-#+BEGIN_SRC emacs-lisp :noweb yes :noweb-ref publish
+#+BEGIN_SRC emacs-lisp :noweb no-export :noweb-ref publish
 (org-babel-lob-ingest "src/commons.org")
 
 (setq org-publish-project-alist
@@ -95,7 +103,7 @@ serve :
 (org-publish-all)
 #+END_SRC
 
-** HTML
+*** HTML
 
 #+NAME: html-properties#output-format
 #+BEGIN_SRC emacs-lisp :noweb-ref html-properties
@@ -144,7 +152,7 @@ serve :
 }
 #+END_SRC
 
-** Tangled Files
+*** Tangled Files
 
 #+NAME: tangle-properties#input
 #+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties

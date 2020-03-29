@@ -1,6 +1,6 @@
 init :
-	cleopatra-run-elisp "cleopatra-gen-proc.el"
-	make -f ${CLEOPATRA_DIRECTORY}/boot.mk postbuild
+	@echo "    init  cleopatra"
+	@cleopatra-run-elisp "cleopatra-gen-proc.el" 2> build.log
 
 -include ${CLEOPATRA_DIRECTORY}/deps.mk
 
