@@ -17,11 +17,6 @@
 * Init
 
 #+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el :exports none :noweb yes
-(defun cleopatra:init ()
-  <<cleopatra-init>>)
-#+END_SRC
-
-#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el :exports none :noweb yes
 (defun cleopatra:ensure-package-installed (&rest packages)
   "Ensure every PACKAGES is installed."
   (mapcar
@@ -33,28 +28,47 @@
    packages))
 #+END_SRC
 
-#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-init
-(setq user-emacs-directory (concat (getenv "ROOT") "/.cleopatra/emacs.d"))
-(setq package-user-dir (concat (getenv "ROOT") "/.cleopatra/emacs.d/packages"))
+#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el
+(defvar cleopatra:*emacs-dir* (concat (getenv "ROOT") "/.cleopatra/emacs.d"))
+
+(setq user-emacs-directory cleopatra:*emacs-dir*)
+(setq package-user-dir (concat cleopatra:*emacs-dir* "/packages"))
 
 (setq package-archives
       '(("gnu"   . "https://elpa.gnu.org/packages/")
         ("melpa" . "https://melpa.org/packages/")))
+
 (package-initialize)
 
 (or (file-exists-p package-user-dir)
     (package-refresh-contents))
 
 (cleopatra:ensure-package-installed 'use-package)
-(eval-when-compile (require 'use-package))
+
+(require 'use-package)
 #+END_SRC
 
-#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-init
+#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el
 (use-package org :ensure t)
 (use-package htmlize :ensure t)
 #+END_SRC
 
-* Tangling
+* Org Configuration
+
+We provide a “sensible” (that is, to our opinion) default configuration for Org
+mode and Babel.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-rel
+(fun cleopatra:org-configuration ()
+  (setq org-export-with-sub-superscripts nil)
+  (setq org-confirm-babel-evaluate nil)
+  (setq org-publish-timestamp-directory
+        (concat cleopatra:*emacs-dir* ".cache/"))
+  (setq org-confirm-babel-evaluate nil)
+  (setq org-src-preserve-indentation t))
+#+END_SRC
+
+* Tangling Process
 
 *~cleopatra~* “tangling semantics” slightly differs from Babel’s default
 one. The key difference is that, contrary to Babel, *~cleopatra~* does not force
@@ -111,7 +125,5 @@ also be used as-is to use the exact same Emacs that is being used for exporting
 and tangling (this may be useful for debugging).
 
 #+BEGIN_SRC bash :tangle bin/cleopatra-emacs :shebang "#!/bin/sh"
-emacs -Q \
-      --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" \
-      --eval="(cleopatra:init)"
+emacs -Q --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" $@
 #+END_SRC

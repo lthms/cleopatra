@@ -81,9 +81,7 @@ implementation are relatively straightforward.
 
 =read_from_file= is defined as a method of the type =Config=. As a first step,
 it calls the ~toml~ crate to parse the content of the file passed as
-argument. Then, it postprocess the ~Config~ object by:
-
-  - Adding the ~ROOT~ entry  in the ~env~ hash map
+argument. Then, it postprocess it using =prepare=.
 
 #+BEGIN_SRC rust :noweb-ref config-impl
 fn read_from_file(file : &Path) -> Result<Self, Error> {
@@ -95,12 +93,41 @@ fn read_from_file(file : &Path) -> Result<Self, Error> {
 
     let mut project = toml::from_str::<Config>(content.as_str())
         .or_raise(&format!("could not parse {:?}", file))?;
+
     let parent = file.parent()
         .or_raise("Could not get the directory of configuration file")?;
-
-    project.env.insert(String::from("ROOT"), OsString::from(parent));
+    project.prepare(parent)?;
 
     return Ok(project);
+}
+#+END_SRC
+
+=prepare= is a method which takes a =Config= as deserialized by ~serde~, and
+modifies it to be properly used by *~cleopatra~* afterwards. Indeed,
+*~cleopatra~* has some requirements that needs to be fulfill:
+
+  - A ~ROOT~ entry in the ~env~ hash map which points to the root of the
+    cleopatra project
+  - A ~PATH~ entry in the ~env~ hash map which adds ~${ROOT}/.cleopatra/bin~ to
+    the current ~PATH~
+
+#+BEGIN_SRC rust :noweb-ref config-impl
+fn prepare(&mut self, root : &Path) -> Result<(), Error> {
+    self.env.insert(String::from("ROOT"), OsString::from(root));
+
+    std::env::var_os("PATH")
+        .as_ref()
+        .map(|val| {
+            let mut paths = std::env::split_paths(val).collect::<Vec<_>>();
+            paths.push(root.join(".cleopatra/bin/"));
+            self.env.insert(
+                String::from("PATH"),
+                std::env::join_paths(paths)
+                    .unwrap_or(root.join(".cleopatra/bin/").into())
+            )
+        });
+
+    Ok(())
 }
 #+END_SRC
 
