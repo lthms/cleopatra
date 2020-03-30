@@ -118,6 +118,11 @@ serve :
 
 #+NAME: style
 #+BEGIN_SRC css
+body {
+  max-width : 40rem;
+  margin : auto;
+}
+
 .org-src-name {
   font-weight : bold;
   font-family : monospace;

@@ -15,7 +15,15 @@ call_cleopatra-version().
   Under the hood, Cleopatra relies on Emacs to tangle the Org documents which
   specify user-defined generation processes. This chapter describes the
   Elisp configuration code used to that end.
-- [[file:commons.org][3 — cleopatra’s Library of Babel]] ::
+- [[file:build-process.org][3 — Build Process]] ::
+  Generation processes in *~cleopatra~* are primilarly Makefiles with a
+  particular structure. In this chapter, we describe the “build sequence” of
+  *~cleopatra~*, and the helpers which make it happen.
+- [[file:procs.org][4 — cleopatra by Examble]] ::
+  *~cleopatra~* is a literate programming project itself, and is actually
+  bootstrapped. This chapter describes the generation processes used to build
+  both *~cleopatra~* and its documentation.
+- [[file:commons.org][5 — cleopatra’s Library of Babel]] ::
   Cleopatra is implemented using the literate programming paradigm. In
   particular, we use the ~noweb~ feature of Babel. This chapter introduces
   several source block that can be evaluated by Emacs at tangling and exporting

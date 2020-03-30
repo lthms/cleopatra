@@ -89,17 +89,3 @@ for f in $@; do
 done
 echo ${END_MARKER} >> .gitignore
 #+END_SRC
-
-#+BEGIN_SRC makefile :tangle bootstrap.mk
-ignore :
-	@echo "  update  gitignore"
-	@scripts/update-gitignore.sh \
-	   ${ARTIFACTS} \
-	   ${CONFIGURE}
-
-clean :
-	@rm -rf ${ARTIFACTS}
-
-cleanall : clean
-	@rm -rf ${CONFIGURE}
-#+END_SRC

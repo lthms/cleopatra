@@ -55,7 +55,7 @@
 (use-package htmlize :ensure t)
 #+END_SRC
 
-** Org Configuration
+** =cleopatra:configure=
 
 We provide a “sensible” (that is, to our opinion) default configuration for Org
 mode and Babel.
@@ -74,7 +74,7 @@ mode and Babel.
                '(:mkdirp . "yes")))
 #+END_SRC
 
-** Tangling
+** =cleopatra:tangle-publish=
 
 *~cleopatra~* “tangling semantics” slightly differs from Babel’s default
 one. The key difference is that, contrary to Babel, *~cleopatra~* does not force
@@ -89,8 +89,6 @@ For instance, let ~IN~ be is the directory wherein lives your literate sources,
   - Babel will assume you want ~d.txt~ to be placed in ~OUT/a/c/~, that is
     to reflect the fact that ~b.org~ lives in ~a~
   - *~cleopatra~* won’t, and ~d.txt~ will be placed in ~OUT/c/~
-
-** =cleopatra:tangle-publish=
 
 =cleopatra:tangle-publish= is a function to be used with =org-publish=. To
 implement the desire behavior, it does not use the third argument (which is
@@ -113,7 +111,7 @@ configuration, and this configuration needs to contains a field
       (error "cleopatra: missing :publishing-directory option"))))
 #+END_SRC
 
-* The ~cleopatra-emacs~ Binaries
+* Emacs Aliases
 
 To generation processes, we provide ~cleopatra-emacs~, to be called from within
 a *~cleopatra~* execution context. ~cleopatra-emacs~ is intended to be used

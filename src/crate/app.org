@@ -8,7 +8,9 @@
 (version: "<<cleopatra-version()>>")
 (author: "Thomas Letan <lthms@soap.coffee")
 (about: "An extensible toolchain with facilities for literate programming")
+#+END_SRC
 
+#+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
 (@subcommand exec =>
   (about: "Execute a command from the root of the current project")
   (@arg CMD: +required +takes_value +multiple "The command to run"))

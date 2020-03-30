@@ -21,6 +21,7 @@ The rest of this chapter is dedicated to the implementation details of the crate
   *~cleopatra~* as a tools needs some notion of “project” —or “workspace”— to
   work with. In this chapter, we specify how a *~cleopatra~* project works, and
   provide the necessary Rust functions and types to manipulate them.
+- [[file:crate/app.org][3 — cleopatra Command-Line Interface]] ::
 
 #+BEGIN_SRC toml :tangle Cargo.toml :noweb yes :exports none
 [package]
