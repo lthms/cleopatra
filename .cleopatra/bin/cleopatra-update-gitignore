@@ -1,6 +1,6 @@
 #+/bin/bash
 BEGIN_MARKER="# begin generated files"
-END_MARKER="# begin generated files"
+END_MARKER="# end generated files"
 
 # remove the previous list of generated files to ignore
 sed -i -e "/${BEGIN_MARKER}/,/${END_MARKER}/d" .gitignore
