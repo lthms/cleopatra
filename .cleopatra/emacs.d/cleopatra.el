@@ -47,9 +47,9 @@
     (if pub-dir
         (with-temp-buffer
           (find-file-read-only filename)
+          (cd (getenv "ROOT"))
           (unless (file-exists-p pub-dir)
             (make-directory pub-dir))
-          (cd (getenv "ROOT"))
           (cd pub-dir)
           (org-babel-tangle))
       (error "cleopatra: missing :publishing-directory option"))))
