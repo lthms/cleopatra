@@ -13,6 +13,7 @@
 #+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
 (@subcommand exec =>
   (about: "Execute a command from the root of the current project")
+  (@setting TrailingVarArg)
   (@arg CMD: +required +takes_value +multiple "The command to run"))
 #+END_SRC
 
