@@ -7,15 +7,16 @@
 #+BEGIN_SRC makefile :tangle cleopatra.mk
 cleopatra-prebuild :
 	@echo "  export  cleopatra"
-	@cleopatra exec -- cleopatra-run-elisp gen.el 2>> build.log
+	@cleopatra exec -- cleopatra-run-elisp export-cleopatra.el 2>> build.log
 
-CONFIGURE += .emacs.d/
-ARTIFACTS += code/ book/ .cache/
+ARTIFACTS += code/ book/
 
 cleopatra-build :
 	@echo "   cargo  build"
 	@cd code/; cargo install --path . 2>> ${ROOT}/build.log
 	@cd code/; cargo doc 2>> ${ROOT}/build.log
+
+cleopatra-postbuild :
 	@echo " install  cleopatra files"
 	@cp code/elisp/*.el .cleopatra/emacs.d
 	@cp code/bin/* .cleopatra/bin
@@ -25,14 +26,11 @@ serve :
 	cd book/ ; python -m http.server
 #+END_SRC
 
-** ~gen.el~
+* ~export-cleopatra.el~
 
-#+BEGIN_SRC emacs-lisp :tangle emacs.d/gen.el :noweb yes :exports none
+#+BEGIN_SRC emacs-lisp :tangle export-cleopatra.el :noweb yes :exports none
 <<setup>>
-
 <<publish>>
-
-(provide 'gen)
 #+END_SRC
 
 ** Setup
@@ -110,11 +108,6 @@ serve :
 :publishing-function org-html-publish-to-html
 #+END_SRC
 
-#+NAME: html-properties#output-format
-#+BEGIN_SRC emacs-lisp :noweb-ref html-properties
-:auto-preamble t
-#+END_SRC
-
 #+NAME: html-properties#html
 #+BEGIN_SRC emacs-lisp :noweb-ref html-properties :noweb no-export
 :html-link-home "/index.html"
@@ -154,23 +147,10 @@ serve :
 
 *** Tangled Files
 
-#+NAME: tangle-properties#input
 #+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
 :base-directory "src"
-:exclude "commons.org"
-#+END_SRC
-
-#+NAME: tangle-properties#output
-#+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
 :publishing-directory "code"
-#+END_SRC
-
-#+NAME: tangle-properties#rec
-#+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
 :recursive t
-#+END_SRC
-
-#+NAME: tangle-properties#output-format
-#+BEGIN_SRC emacs-lisp :noweb-ref tangle-properties
+:exclude "commons.org"
 :publishing-function cleopatra:tangle-publish
 #+END_SRC

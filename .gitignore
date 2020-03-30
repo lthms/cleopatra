@@ -1,15 +1,11 @@
 .cleopatra/emacs.d/cache
 .cleopatra/emacs.d/packages
-.cleopatra/emacs.d/packages
+.cleopatra/deps.mk
 
 # begin generated files
+cleopatra.mk
+export-cleopatra.el
 build.log
 code/
 book/
-.cache/
-.emacs.d/
-cleopatra.mk
-scripts/org-publish.el
-bootstrap.mk
-scripts/update-gitignore.sh
 # begin generated files

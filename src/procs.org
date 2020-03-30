@@ -1,0 +1,5 @@
+#+TITLE: Cleopatra’s Generation Processes
+#+AUTHOR: Thomas Letan
+#+HTML_LINK_UP: index.html
+
+- [[file:procs/cleopatra.html][Cleopatra’s Export Process]] ::

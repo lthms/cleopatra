@@ -1,4 +1,4 @@
 #!/bin/sh
 emacs -Q --batch \
          --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" \
-         --load="${ROOT}/.cleopatra/emacs.d/${1}"
+         --load="${1}"

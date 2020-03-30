@@ -5,15 +5,20 @@
 * ~boot.mk~
 
 #+BEGIN_SRC makefile :tangle boot.mk
+ARTIFACTS := build.log
+CONFIGURE :=
+
 init :
 	@echo "    init  cleopatra"
-	@cleopatra-run-elisp "cleopatra-gen-proc.el" 2> build.log
+	@cleopatra-run-elisp "${CLEOPATRA_DIRECTORY}/emacs.d/cleopatra-gen-proc.el" 2> build.log
 
 -include ${CLEOPATRA_DIRECTORY}/deps.mk
 
 prebuild :
 build : prebuild
 postbuild : build
+	@echo "  update  gitignore"
+	@cleopatra-update-gitignore ${CONFIGURE} ${ARTIFACTS}
 
 .PHONY : init prebuild build postbuild
 #+END_SRC
@@ -35,6 +40,10 @@ postbuild : build
   (let ((tangled (cleopatra:tangle-publish conf filename pub-dir))
         (proc (file-name-sans-extension (file-name-nondirectory  filename))))
     (insert
+     (format "include %s.mk\n" proc))
+    (insert
+     (format "CONFIGURE += %s\n" (mapconcat 'identity tangled " ")))
+    (insert
      (format "prebuild : %s-prebuild\nbuild : %s-build\npostbuild : %s-postbuild\n"
              proc proc proc))
     (insert
@@ -42,9 +51,7 @@ postbuild : build
              proc proc proc proc))
     (insert
      (format ".PHONY : %s-prebuild %s-build %s-postbuild\n"
-             proc proc proc proc))
-    (insert
-     (format "include ${CLEOPATRA_DIRECTORY}/%s.mk\n" proc))))
+             proc proc proc proc))))
 
 (cleopatra:configure)
 (setq org-publish-use-timestamps-flag nil)
@@ -56,10 +63,43 @@ postbuild : build
 (setq org-publish-project-alist
       `(("cleopatra-gen-proc"
          :base-directory ,(getenv "CLEOPATRA_GENERATION_PROCESSES")
-         :publishing-directory ,(getenv "CLEOPATRA_DIRECTORY")
+         :publishing-directory "."
          :publishing-function cleopatra:gen-processes-tangle-publish)))
 
 (with-temp-buffer
   (org-publish-all)
   (write-file (concat (getenv "CLEOPATRA_DIRECTORY") "/deps.mk")))
+#+END_SRC
+* ~update-gitignore~
+
+#+BEGIN_SRC bash :tangle bin/cleopatra-update-gitignore :shebang "#+/bin/bash"
+BEGIN_MARKER="# begin generated files"
+END_MARKER="# begin generated files"
+
+# remove the previous list of generated files to ignore
+sed -i -e "/${BEGIN_MARKER}/,/${END_MARKER}/d" .gitignore
+# remove trailing empty lines
+sed -i -e :a -e '/^\n*$/{$d;N;};/\n$/ba' .gitignore
+
+# output the list of files to ignore
+echo "" >> .gitignore
+echo ${BEGIN_MARKER} >> .gitignore
+for f in $@; do
+    echo "${f}" >> .gitignore
+done
+echo ${END_MARKER} >> .gitignore
+#+END_SRC
+
+#+BEGIN_SRC makefile :tangle bootstrap.mk
+ignore :
+	@echo "  update  gitignore"
+	@scripts/update-gitignore.sh \
+	   ${ARTIFACTS} \
+	   ${CONFIGURE}
+
+clean :
+	@rm -rf ${ARTIFACTS}
+
+cleanall : clean
+	@rm -rf ${CONFIGURE}
 #+END_SRC

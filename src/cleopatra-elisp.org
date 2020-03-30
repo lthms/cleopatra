@@ -113,7 +113,7 @@ configuration, and this configuration needs to contains a field
       (error "cleopatra: missing :publishing-directory option"))))
 #+END_SRC
 
-* The ~cleopatra-emacs~ Binary
+* The ~cleopatra-emacs~ Binaries
 
 To generation processes, we provide ~cleopatra-emacs~, to be called from within
 a *~cleopatra~* execution context. ~cleopatra-emacs~ is intended to be used
@@ -129,5 +129,5 @@ emacs -Q --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" $@
 #+BEGIN_SRC bash :tangle bin/cleopatra-run-elisp :shebang "#!/bin/sh"
 emacs -Q --batch \
          --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" \
-         --load="${ROOT}/.cleopatra/emacs.d/${1}"
+         --load="${1}"
 #+END_SRC
