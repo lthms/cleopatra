@@ -35,7 +35,7 @@ fn build_subcommand() -> Result<(), Error>
 #+END_SRC
 
 #+BEGIN_SRC rust :noweb-ref build-body
-Config::find_project_then(|project| {
+Config::find_project_then(|_| {
     // TODO: CLEOPATRA_DIRECTORY is hardcoded here
     exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])?;
     exec(&vec!["make", "-f", ".cleopatra/boot.mk", "postbuild"])
@@ -86,7 +86,7 @@ fn exec(cmd : &[&str]) -> Result<(), Error> {
             if status.success() {
                 Ok(())
             } else {
-                Err(Error::new(&format!("The command {:?} failed", cmd)))
+                Err(Error::Anomaly(format!("The command `{}' failed", cmd.join(" "))))
             }
         })
 }
@@ -100,8 +100,19 @@ fn exec(cmd : &[&str]) -> Result<(), Error> {
 use cleopatra::configuration::Config;
 use cleopatra::error::{Error, Raise};
 use std::process::Command;
+use colored::*;
 
-fn main() -> Result<(), Error> {
+fn main() -> () {
+    match run() {
+        Err(err) => {
+            let msg = err.message();
+            eprintln!("{} {}\n{}", "Error:".red().bold(), msg.title, msg.description)
+        },
+        _ => (),
+    }
+}
+
+fn run() -> Result<(), Error> {
     let matches = clap_app!(myapp =>
         <<cli-specs>>
     ).get_matches();

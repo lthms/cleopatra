@@ -2,8 +2,6 @@
 #+AUTHOR: Thomas Letan
 #+HTML_LINK_UP: ../cleopatra-crate.html
 
-* Configuration
-
 #+BEGIN_SRC rust :tangle src/configuration.rs :noweb yes :exports none
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
@@ -11,7 +9,8 @@ use std::ffi::OsString;
 use serde::{Serialize, Deserialize};
 use crate::error::{Error, Raise};
 
-<<gen-rust-struct(pub='t, name="Config", fields=conf-fields, derive=conf-derive)>>
+#[derive(Serialize, Deserialize)]
+<<gen-rust-struct(name="Config", fields=conf-fields)>>
 
 impl Config {
   <<config-impl>>
@@ -23,7 +22,7 @@ impl Config {
 A *~cleopatra~* project is configured with a configuration file called
 ~cleopatra.toml~.
 
-** The ~cleopatra.toml~ File
+* The ~cleopatra.toml~ File
 
 The ~cleopatra.toml~ file serves two purpose: it identifies the root of your
 project, and it contains configuration data that can be used by *~cleopatra~*.
@@ -32,19 +31,12 @@ The content of this file is encoded in Rust using the =Config= structure, with
 the following fields:
 
 #+NAME: conf-fields
-| ~pub generation_processes~  | ~PathBuf~                   | Path to the directory where the generation processes are defined                  |
-| ~#[serde(default)] pub env~ | ~HashMap<String, OsString>~ | Collection of environment variable to set before calling the generation processes |
-
-And default implementations for the following traits:
-
-#+NAME: conf-derive
-- ~Serialize~
-- ~Deserialize~
-- ~Debug~
+| ~generation_processes~ | ~PathBuf~                   | Path to the directory where the generation processes are defined                  |                  |
+| ~env~                  | ~HashMap<String, OsString>~ | Collection of environment variable to set before calling the generation processes | ~serde(default)~ |
 
 We proceed with the methods implemented for the type =Config=.
 
-** =find_project_then=: Searching for a Project to Work With
+* =find_project_then=: Searching for a Project to Work With
 
 #+BEGIN_SRC rust :noweb-ref config-impl :exports none :noweb yes
 <<find-project-proto>> {
@@ -92,7 +84,7 @@ fn read_from_file(file : &Path) -> Result<Self, Error> {
         ))?;
 
     let mut project = toml::from_str::<Config>(content.as_str())
-        .or_raise(&format!("could not parse {:?}", file))?;
+        .map_err(|err| Error::ConfigurationParsing(file.into(), err))?;
 
     let parent = file.parent()
         .or_raise("Could not get the directory of configuration file")?;
@@ -164,7 +156,7 @@ fn find_file(filename : &str) -> Result<PathBuf, Error> {
         }
 
         if !cwd.pop() {
-            return Err(Error::new("could not find cleopatra.toml"));
+            return Err(Error::ConfigurationNotFound);
         }
     }
 }
@@ -219,7 +211,7 @@ where
 }
 #+END_SRC
 
-** =root=: Retreive the root directory of a project
+* =root=: Retreive the root directory of a project
 
 #+BEGIN_SRC rust :noweb-ref config-impl :noweb yes :exports none
 <<root-proto>> {

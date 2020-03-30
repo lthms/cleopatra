@@ -51,34 +51,71 @@ generates the following TOML entry.
 - ~Deserialize~
 
 #+NAME: struct-test
-| ~field1~ | ~isize~   | Some integer because why not |
-| ~field2~ | ~PathBuf~ | Let’s be parametric          |
+| ~field1~ | ~isize~   | Some integer because why not | ~serde(default)~ |
+| ~field2~ | ~PathBuf~ | Let’s be parametric          |                  |
 
 generates the following Rust struct
 
-#+BEGIN_SRC toml :noweb yes
-<<gen-rust-struct(derive=derive-auto)>>
+#+BEGIN_SRC rust :noweb yes
+<<gen-rust-struct()>>
 #+END_SRC
 
 #+NAME: gen-rust-struct
-#+BEGIN_SRC emacs-lisp :var pub='nil :var derive='nil :var fields=struct-test :var type-args="" :var name="Test" :noweb yes
+#+BEGIN_SRC emacs-lisp :var fields=struct-test :var type-args="" :var name="Test" :noweb yes
 <<top-tail-fun>>
 
-(let* ((derive (format (mapconcat (lambda (x) (top-tail (car x))) derive ", ")))
-       (derive-str (if derive (format "#[derive(%s)]\n" derive) "")))
-  (format
-   "%s%sstruct %s%s {\n%s\n}"
-   derive-str
-   (if pub "pub " "")
-   name
-   type-args
-   (mapconcat (lambda (field)
-                (format
-                 "    /// %s\n    %s : %s,"
-                 (nth 2 field)
-                 (top-tail (nth 0 field))
-                 (top-tail (nth 1 field))))
-              fields
-              "\n"))))
-
+(format
+ "pub struct %s%s {\n%s\n}"
+ name
+ type-args
+ (mapconcat
+  (lambda (field)
+    (let* ((name (top-tail (nth 0 field)))
+           (type (top-tail (nth 1 field)))
+           (docs-maybe (nth 2 field))
+           (docs (if (string= docs-maybe "") ""
+                   (format "/// %s\n    " docs-maybe)))
+           (attrs-maybe (nth 3 field))
+           (attrs (if (string= attrs-maybe "") ""
+                    (format "#[%s]\n    " (top-tail attrs-maybe)))))
+      (format "    %s%spub %s : %s," docs attrs name type)))
+  fields
+  "\n"))
 #+END_SRC
+
+#+NAME: enum-test
+| ~ConfigurationParsing~  | ~PathBuf, toml::de::Error~ | There is a parsing error inside a configuration file                                  |
+| ~ConfigurationNotFound~ |                            | There is no configuration file neither in current directory nor in any of its parents |
+| ~Anomaly~               | ~String~                   | Something else happened, that was not supposed to                                     |
+
+#+NAME: gen-rust-enum
+#+BEGIN_SRC emacs-lisp :var variants=enum-test :var type-args="" :var name="Test" :noweb yes
+<<top-tail-fun>>
+
+(format
+ "pub enum %s%s {\n%s\n}"
+ name
+ type-args
+ (mapconcat
+  (lambda (variant)
+    (let* ((name (top-tail (nth 0 variant)))
+           (type-maybe (nth 1 variant))
+           (type (if (string= type-maybe "") ""
+                   (format "(%s)" (top-tail type-maybe))))
+           (docs-maybe (nth 2 variant))
+           (docs (if (string= docs-maybe "") ""
+                   (format "/// %s\n    " docs-maybe))))
+      (format "    %s%s%s," docs name type)))
+  variants
+  "\n"))
+#+END_SRC
+
+#+RESULTS: gen-rust-enum
+: pub enum Test {
+:     /// There is a parsing error inside a configuration file
+:     ConfigurationParsing(PathBuf, toml::de::Error),
+:     /// There is no configuration file neither in current directory nor in any of its parents
+:     ConfigurationNotFound,
+:     /// Something else happened, that was not supposed to
+:     Anomaly(String),
+: }

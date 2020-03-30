@@ -2,35 +2,116 @@
 #+AUTHOR: Thomas Letan
 #+HTML_LINK_UP: ../cleopatra-crate.html
 
-#+BEGIN_SRC rust :tangle src/error.rs :exports none
-#[derive(Debug)]
-pub struct Error(pub String);
+* The ~Error~ Type
 
-impl Error {
-    pub fn new(str : &str) -> Error {
-        Error(String::from(str))
-    }
-}
+The Rust idiomatic approach to handle errors is to rely on the =Result= type
+provided by the standard library. The introduction of the ~?~ operator, which
+allows to seamlessly shortcut a computation which may fails (of type =A ->
+Result<B, E>=) in case one of its “subcomputation” fails is really convenient.
 
+We define a custom ~Error~ enum, with the following variants.
+
+#+NAME: error-specs
+| ~ConfigurationParsing~  | ~PathBuf, toml::de::Error~ | There is a parsing error inside a configuration file                                  |
+| ~ConfigurationNotFound~ |                            | There is no configuration file neither in current directory nor in any of its parents |
+| ~Anomaly~               | ~String~                   | Something else happened, that was not supposed to                                     |
+
+All the functions of *~cleopatra~* which may fails, either because it relies on
+such a function (typically, if we interact with the filesystem), shall return a
+=Result<A, cleopatra::error::Error>= value.
+
+The correct labeling of errors with a dedicated variant remains a work in
+progress at the moment. When no suitable variant are available, the ideal action
+is to add this variant in =Error=. But in practice, we currently use the
+=Anomaly= variant as a catch-all, and there is even a dedicated trait to make it
+more convenient to “raise” =Anomaly= errors: =Raise=
+
+#+BEGIN_SRC rust :noweb-ref raise-trait
 pub trait Raise {
-    type Out;
-
-    fn or_raise(self, msg : &str) -> Self::Out;
+    type In;
+    fn or_raise(self, msg : &str) -> Result<Self::In, Error>;
 }
+#+END_SRC
 
+The main idea of the =Raise= trait is to seamlessy combine functions which may
+fail (either with the =Result<A, E>= for any =E= or the =Option<A>= type), and
+to project them in the =Result<A, Error>= type. We do that by “forgetting” the
+exact reason why we failed, and just raising an =Anomaly= with a message that is
+hopefully clear for the user.
+
+#+BEGIN_SRC rust :noweb-ref raise-trait
 impl<T> Raise for Option<T> {
-    type Out = Result<T, Error>;
+    type In = T;
 
     fn or_raise(self, msg : &str) -> Result<T, Error> {
-        self.ok_or(Error(String::from(msg)))
+        self.ok_or(Error::Anomaly(String::from(msg)))
     }
 }
 
 impl<T, E> Raise for Result<T, E> {
-    type Out = Result<T, Error>;
+    type In = T;
 
     fn or_raise(self, msg : &str) -> Result<T, Error> {
-        self.map_err(|_| Error(String::from(msg)))
+        self.map_err(|_| Error::Anomaly(String::from(msg)))
     }
 }
+#+END_SRC
+
+* Formatting Error Messages
+
+To give to the users of *~cleopatra~* some feedback about failing executions, we
+introduce the =Message= structure, whose fields are the following.
+
+#+NAME: message-specs
+| ~title~       | ~String~ | A quick summary of the error                                       |   |
+| ~description~ | ~String~ | A longer message which supposedly provides a solution for the user |   |
+
+Besides, we add a =message= method to =Error=, with the following prototype.
+
+#+BEGIN_SRC rust :noweb-ref message-prototype
+pub fn message(self) -> Message
+#+END_SRC
+
+The implementation of =message= is simply a case enumeration.
+
+#+BEGIN_SRC rust :noweb-ref error-impl :noweb yes :exports none
+<<message-prototype>> {
+    match self {
+        <<message-match>>
+    }
+}
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref message-match
+Error::ConfigurationParsing(path, err) =>
+    Message {
+        title : format!("{:?} is not a valid cleopatra.toml file", path),
+        description : format!("The following error was found: {}.", err)
+    },
+Error::ConfigurationNotFound =>
+    Message {
+        title : "cleopatra could not file its configuration file".into(),
+        description : "You need to add a valid `cleopatra.toml' file at the root of your project.".into()
+    },
+Error::Anomaly(msg) =>
+    Message {
+        title : String::from("An anomaly occured, you probably have found a bug."),
+        description : msg
+    },
+#+END_SRC
+
+#+BEGIN_SRC rust :tangle src/error.rs :noweb yes :exports none
+use std::path::PathBuf;
+
+#[derive(Debug)]
+<<gen-rust-struct(name="Message", fields=message-specs)>>
+
+#[derive(Debug)]
+<<gen-rust-enum(name="Error", variants=error-specs)>>
+
+impl Error {
+    <<error-impl>>
+}
+
+<<raise-trait>>
 #+END_SRC
