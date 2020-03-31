@@ -1,2 +1,3 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 emacs -Q --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" $@

@@ -120,11 +120,13 @@ proper configuration (in particular, with ~cleopatra.el~ loaded). But it can
 also be used as-is to use the exact same Emacs that is being used for exporting
 and tangling (this may be useful for debugging).
 
-#+BEGIN_SRC bash :tangle bin/cleopatra-emacs :shebang "#!/bin/sh"
+#+BEGIN_SRC bash :tangle bin/cleopatra-emacs :shebang "#!/bin/bash"
+set -e
 emacs -Q --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" $@
 #+END_SRC
 
-#+BEGIN_SRC bash :tangle bin/cleopatra-run-elisp :shebang "#!/bin/sh"
+#+BEGIN_SRC bash :tangle bin/cleopatra-run-elisp :shebang "#!/bin/bash"
+set -e
 emacs -Q --batch \
          --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" \
          --load="${1}"

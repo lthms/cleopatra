@@ -106,7 +106,8 @@ fn main() -> () {
     match run() {
         Err(err) => {
             let msg = err.message();
-            eprintln!("{} {}\n{}", "Error:".red().bold(), msg.title, msg.description)
+            eprintln!("{} {}\n{}", "Error:".red().bold(), msg.title, msg.description);
+            std::process::exit(1);
         },
         _ => (),
     }
