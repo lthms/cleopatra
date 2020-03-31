@@ -14,6 +14,7 @@ We define a custom ~Error~ enum, with the following variants.
 #+NAME: error-specs
 | ~ConfigurationParsing~  | ~PathBuf, toml::de::Error~ | There is a parsing error inside a configuration file                                  |
 | ~ConfigurationNotFound~ |                            | There is no configuration file neither in current directory nor in any of its parents |
+| ~ConfigurationRead~     | ~std::io::Error~           | There is a configuration file, but cleopatra cannot read it                           |
 | ~Anomaly~               | ~String~                   | Something else happened, that was not supposed to                                     |
 
 All the functions of *~cleopatra~* which may fails, either because it relies on
@@ -92,6 +93,11 @@ Error::ConfigurationNotFound =>
     Message {
         title : "cleopatra could not file its configuration file".into(),
         description : "You need to add a valid `cleopatra.toml' file at the root of your project.".into()
+    },
+Error::ConfigurationRead(io) =>
+    Message {
+        title : "cleopatra could not read its configuration file".into(),
+        description : format!("Its attempt failed with the following error: {}.", io)
     },
 Error::Anomaly(msg) =>
     Message {

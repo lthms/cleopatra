@@ -78,16 +78,13 @@ argument. Then, it postprocess it using =prepare=.
 #+BEGIN_SRC rust :noweb-ref config-impl
 fn read_from_file(file : &Path) -> Result<Self, Error> {
     let content : String = std::fs::read_to_string(file)
-        .or_raise(&format!(
-            "Could not read the content of the configuration file {:?}",
-            file
-        ))?;
+        .map_err(Error::ConfigurationRead)?;
 
     let mut project = toml::from_str::<Config>(content.as_str())
         .map_err(|err| Error::ConfigurationParsing(file.into(), err))?;
 
     let parent = file.parent()
-        .or_raise("Could not get the directory of configuration file")?;
+        .or_raise("cleopatra has found a configuration file, but could not guess the path of its directory.")?;
     project.prepare(parent)?;
 
     return Ok(project);
