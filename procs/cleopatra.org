@@ -15,12 +15,6 @@ cleopatra-build :
 	@cd code/; cargo install --path .
 	@cd code/; cargo doc
 
-cleopatra-postbuild :
-	@cleopatra echo "Updating" ".cleopatra directory"
-	@cp code/elisp/*.el .cleopatra/emacs.d
-	@cp code/bin/* .cleopatra/bin
-	@cp code/boot.mk .cleopatra/
-
 serve :
 	cd book/ ; python -m http.server
 #+END_SRC

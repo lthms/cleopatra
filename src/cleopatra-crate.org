@@ -5,10 +5,11 @@
 Rust library and tools of *~cleopatra~* current rely on the following crates.
 
 #+NAME: dependencies-info
-| ~colored~ | ~"1.9"~                                      | Coloring the terminal output                      |
-| ~clap~    | ~"2.33"~                                   | Parsing command-line arguments                    |
-| ~serde~   | ~{ version = "*", features = ["derive"] }~ | Serialization and deserialization for Rust values |
-| ~toml~    | ~"*"~                                      | Parsing ~cleopatra.toml~ files                    |
+| ~colored~     | ~"1.9"~                                    | Coloring the terminal output                      |
+| ~clap~        | ~"2.33"~                                   | Parsing command-line arguments                    |
+| ~serde~       | ~{ version = "*", features = ["derive"] }~ | Serialization and deserialization for Rust values |
+| ~toml~        | ~"*"~                                      | Parsing ~cleopatra.toml~ files                    |
+| ~lazy_static~ | ~"*"~                                      | Initialize the hash map of assets of cleopatra    |
 
 The rest of this chapter is dedicated to the implementation details of the crate
 *~cleopatra~*, and proceeds as follows:

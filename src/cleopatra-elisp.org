@@ -4,7 +4,7 @@
 
 * ~cleopatra.el~
 
-#+BEGIN_SRC emacs-lisp :tangle elisp/cleopatra.el :noweb yes :exports none
+#+BEGIN_SRC emacs-lisp :tangle emacs.d/cleopatra.el :noweb yes :exports none
 ;;; cleopatra.el --- The cleopatra Emacs Library
 ;;; Commentary:
 ;;; Code:

@@ -6,10 +6,13 @@
 
 #+BEGIN_SRC makefile :tangle boot.mk
 ARTIFACTS := build.log
-CONFIGURE :=
+CONFIGURE := .cleopatra
+
+PROCS := $(wildcard ${CLEOPATRA_GENERATION_PROCESSES}/*.org)
 
 init :
 	@cleopatra echo "Exporting" "generation process"
+	@cleopatra-gen-deps ${PROCS}
 	@cleopatra-run-elisp "${CLEOPATRA_DIRECTORY}/emacs.d/cleopatra-gen-proc.el" > build.log
 
 -include ${CLEOPATRA_DIRECTORY}/deps.mk
@@ -25,7 +28,7 @@ postbuild : build
 
 * ~cleopatra-gen-proc.el~
 
-#+BEGIN_SRC emacs-lisp :tangle elisp/cleopatra-gen-proc.el :noweb yes :exports none
+#+BEGIN_SRC emacs-lisp :tangle emacs.d/cleopatra-gen-proc.el :noweb yes :exports none
 ;;; cleopatra-gen-proc.el --- The cleopatra Emacs Library
 ;;; Commentary:
 ;;; Code:
@@ -39,18 +42,19 @@ postbuild : build
 (defun cleopatra:gen-processes-tangle-publish (conf filename pub-dir)
   (let ((tangled (cleopatra:tangle-publish conf filename pub-dir))
         (proc (file-name-sans-extension (file-name-nondirectory  filename))))
-    (insert
-     (format "include %s.mk\n" proc)
-     (format "CONFIGURE += %s\n" (mapconcat 'identity tangled " "))
-     (format "prebuild : %s-prebuild\nbuild : %s-build\npostbuild : %s-postbuild\n"
-             proc proc proc)
-     (format "%s-build : %s-prebuild\n%s-postbuild : %s-build\n"
-             proc proc proc proc)
-     (format ".PHONY : %s-prebuild %s-build %s-postbuild\n"
-             proc proc proc proc))))
+    (with-temp-buffer
+      (insert
+       (format "include %s.mk\n" proc)
+       (format "CONFIGURE += %s\n" (mapconcat 'identity tangled " "))
+       (format "prebuild : %s-prebuild\nbuild : %s-build\npostbuild : %s-postbuild\n"
+               proc proc proc)
+       (format "%s-build : %s-prebuild\n%s-postbuild : %s-build\n"
+               proc proc proc proc)
+       (format ".PHONY : %s-prebuild %s-build %s-postbuild\n"
+               proc proc proc proc))
+      (write-file (format "%s/%s.deps.mk" (getenv "CLEOPATRA_DIRECTORY") proc)))))
 
 (cleopatra:configure)
-(setq org-publish-use-timestamps-flag nil)
 
 (org-babel-do-load-languages
  'org-babel-load-languages
@@ -62,10 +66,23 @@ postbuild : build
          :publishing-directory "."
          :publishing-function cleopatra:gen-processes-tangle-publish)))
 
-(with-temp-buffer
-  (org-publish-all)
-  (write-file (concat (getenv "CLEOPATRA_DIRECTORY") "/deps.mk")))
+(org-publish-all)
 #+END_SRC
+
+* ~gen-deps~
+
+#+BEGIN_SRC bash :tangle bin/cleopatra-gen-deps :shebang "#+/bin/bash"
+out="${CLEOPATRA_DIRECTORY}/deps.mk"
+
+rm -f "${out}"
+touch "${out}"
+
+for proc in "$@"; do
+    proc_name=$(basename ${proc} ".org")
+    echo "include \${CLEOPATRA_DIRECTORY}/${proc_name}.deps.mk" >> "${out}"
+done
+#+END_SRC
+
 * ~update-gitignore~
 
 #+BEGIN_SRC bash :tangle bin/cleopatra-update-gitignore :shebang "#+/bin/bash"

@@ -3,6 +3,7 @@
 .cleopatra/deps.mk
 
 # begin generated files
+.cleopatra
 cleopatra.mk
 export-cleopatra.el
 build.log

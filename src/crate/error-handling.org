@@ -15,6 +15,7 @@ We define a custom ~Error~ enum, with the following variants.
 | ~ConfigurationParsing~  | ~PathBuf, toml::de::Error~ | There is a parsing error inside a configuration file                                  |
 | ~ConfigurationNotFound~ |                            | There is no configuration file neither in current directory nor in any of its parents |
 | ~ConfigurationRead~     | ~std::io::Error~           | There is a configuration file, but cleopatra cannot read it                           |
+| ~InitWorkingDirectory~  | ~std::io::Error~           | Cleopatra could not set-up its working directory                                      |
 | ~UnknownSubcommand~     | ~String~                   | Cleopatra has been called with an incorrect subcommand                                |
 | ~Anomaly~               | ~String~                   | Something else happened, that was not supposed to                                     |
 
@@ -99,6 +100,11 @@ Error::ConfigurationRead(io) =>
     Message {
         title : "cleopatra could not read its configuration file".into(),
         description : format!("Its attempt failed with the following error: {}.", io)
+    },
+Error::InitWorkingDirectory(io) =>
+    Message {
+        title : "cleopatra could not set-up its working directory".into(),
+        description : format!("The filesystem reported the following error: {}", io)
     },
 Error::UnknownSubcommand(cmd) =>
     Message {

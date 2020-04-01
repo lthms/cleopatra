@@ -6,6 +6,8 @@
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use std::ffi::OsString;
+use std::fs::{write, create_dir_all};
+use std::os::unix::fs::PermissionsExt;
 use serde::{Serialize, Deserialize};
 use crate::error::{Error, Raise};
 
@@ -229,4 +231,90 @@ value for the ~ROOT~ key, which is the case with =find_project_then=.
 
 #+BEGIN_SRC rust :noweb-ref root-body
 self.env["ROOT"].clone().into()
+#+END_SRC
+* =prepare_workspace=
+
+We provide =prepare_workspace=, a method for creating the ~.cleopatra~ directory
+used by *~cleopatra~* to store certain files it used at runtime.
+
+We include the content of these files within a dedicated, static (thanks to the
+macro of the ~lazy_static~ crate) hash map called =FILES=. The current way we
+define =FILES= is cumbersome, and could easily be improved.
+
+#+BEGIN_SRC rust :noweb-ref helpers
+lazy_static! {
+    static ref FILES : HashMap<PathBuf, (&'static[u8], bool)> = {
+        let mut res = HashMap::new();
+
+        res.insert(
+            PathBuf::from(".cleopatra/boot.mk"),
+            (&include_bytes!("../boot.mk")[..], false),
+        );
+
+        res.insert(
+            PathBuf::from(".cleopatra/emacs.d/cleopatra.el"),
+            (&include_bytes!("../emacs.d/cleopatra.el")[..], false),
+        );
+
+        res.insert(
+            PathBuf::from(".cleopatra/emacs.d/cleopatra-gen-proc.el"),
+            (&include_bytes!("../emacs.d/cleopatra-gen-proc.el")[..], false),
+        );
+
+        res.insert(
+            PathBuf::from(".cleopatra/bin/cleopatra-emacs"),
+            (&include_bytes!("../bin/cleopatra-emacs")[..], true),
+        );
+
+        res.insert(
+            PathBuf::from(".cleopatra/bin/cleopatra-update-gitignore"),
+            (&include_bytes!("../bin/cleopatra-update-gitignore")[..], true),
+        );
+
+        res.insert(
+            PathBuf::from(".cleopatra/bin/cleopatra-gen-deps"),
+            (&include_bytes!("../bin/cleopatra-gen-deps")[..], true),
+        );
+
+        res.insert(
+            PathBuf::from(".cleopatra/bin/cleopatra-run-elisp"),
+            (&include_bytes!("../bin/cleopatra-run-elisp")[..], true),
+        );
+
+        res
+    };
+}
+#+END_SRC
+
+The business logic of =prepare_workspace= is implemented in a private method
+called =prepare_workspace_io=, whose only difference with =prepare_workspace= is
+the type of its errors. =prepare_workspace_io= returns a FS error, that we turn
+in a cleopatra error using the ~InitWorkingDirectory~ variant.
+
+#+BEGIN_SRC rust :noweb-ref config-impl
+pub fn prepare_workspace(&self) -> Result<(), Error> {
+    self.prepare_workspace_io().map_err(Error::InitWorkingDirectory)
+}
+#+END_SRC
+
+The implementation of =prepare_workspace_io= consists in iterating the content
+of =FILES=. Note that we use the =set_permissions= which is ~Unix~
+specific. Therefore, *~cleopatra~* does not work on Windows for now.
+
+#+BEGIN_SRC rust :noweb-ref config-impl
+fn prepare_workspace_io(&self) -> Result<(), std::io::Error> {
+    for (path, content) in FILES.iter() {
+        if !path.exists() {
+            create_dir_all(path.parent().unwrap())?;
+            write(path, content.0)?;
+            if content.1 {
+                let mut perms = std::fs::metadata(path)?.permissions();
+                perms.set_mode(0o755);
+                std::fs::set_permissions(path, perms)?;
+            }
+        }
+    }
+
+    Ok(())
+}
 #+END_SRC

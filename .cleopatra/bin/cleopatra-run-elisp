@@ -1,5 +1,0 @@
-#!/bin/bash
-set -e
-emacs -Q --batch \
-         --load="${ROOT}/.cleopatra/emacs.d/cleopatra.el" \
-         --load="${1}"

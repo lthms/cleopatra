@@ -4,6 +4,7 @@
 
 #+BEGIN_SRC rust :tangle src/main.rs :noweb yes :exports none
 #[macro_use] extern crate clap;
+#[macro_use] extern crate lazy_static;
 
 use std::process::Command;
 use colored::*;
@@ -42,6 +43,17 @@ using a S-Expression. Rather than defining the S-Expression at one place, and
 then provide an implementation for the related CLI, we enjoy the facilities
 provided by literate programming and the ~noweb~ feature of Babel to provide the
 specification of a given subcommand and its implementation in the same section.
+
+We first give the general-purpose information about *~cleopatra~*: its name,
+author and current version (we recall the version number is specify once
+[[file:../commons.org][in the ~commons.org~ file]]).
+
+#+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
+(version: "<<cleopatra-version()>>")
+(author: "Thomas Letan <lthms@soap.coffee")
+(@setting ArgsNegateSubcommands)
+(about: "An extensible toolchain with facilities for literate programming")
+#+END_SRC
 
 * The =CleopatraCommand= Trait
 
@@ -89,43 +101,7 @@ impl<'a> CleopatraCommand<'a> for FooCommand<'a> {
 }
 #+END_SRC
 
-* Commands
-
-The following table lists the subcommands supported by *~cleopatra~*, with their
-dedicated types.
-
-#+NAME: cleopatra-commands
-| exec | Exec |
-| echo | Echo |
-
-Interestingly, we can —and we do— generate the ~match~ statement with the
-following Emacs lisp routine.
-
-#+NAME: gen-run-match
-#+BEGIN_SRC emacs-lisp :var cmds=cleopatra-commands
-(mapconcat
- (lambda (cmd)
-   (format "(\"%s\", Some(args)) => %s::go(args),"
-           (nth 0 cmd)
-           (nth 1 cmd)))
- cmds
- "\n")
-#+END_SRC
-
-** Usage
-
-We first give the general-purpose information about *~cleopatra~*: its name,
-author and current version (we recall the version number is specify once
-[[file:../commons.org][in the ~commons.org~ file]]).
-
-#+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
-(version: "<<cleopatra-version()>>")
-(author: "Thomas Letan <lthms@soap.coffee")
-(@setting ArgsNegateSubcommands)
-(about: "An extensible toolchain with facilities for literate programming")
-#+END_SRC
-
-** ~cleopatra~
+* Base Command
 
 Calling ~cleopatra~ without any particular subcommand will run ~make~ with the
 appropriate Makefile.
@@ -146,9 +122,10 @@ the trait =CleopatraCommand=.
 <<gen-rust-struct(name="Make<'a>", fields=make-specs)>>
 #+END_SRC
 
-Note that the =run= method will first call =make init=, in order to ensure that
-generation processes are up-to-date (see [[file:../build-process.org][the
-related chapter]] if interested).
+Note that the =run= method will first prepare the workspace (the ~.cleopatra/~
+directory), then we call =make init= in order to ensure that generation
+processes are up-to-date (see [[file:../build-process.org][the related chapter]]
+if interested), and only after that we call ~make~ with the supplied recipe.
 
 #+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes
 impl<'a> CleopatraCommand<'a> for Make<'a> {
@@ -160,7 +137,9 @@ impl<'a> CleopatraCommand<'a> for Make<'a> {
     }
 
     fn run(self) -> Result<(), Error> {
-        Config::find_project_then(|_| {
+        Config::find_project_then(|project| {
+            project.prepare_workspace()?;
+
             exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])?;
 
             let mut cmd = vec!["make", "-f", ".cleopatra/boot.mk", self.recipe];
@@ -173,6 +152,29 @@ impl<'a> CleopatraCommand<'a> for Make<'a> {
         })
     }
 }
+#+END_SRC
+
+* Subcommands
+
+The following table lists the subcommands supported by *~cleopatra~*, with their
+dedicated types.
+
+#+NAME: cleopatra-commands
+| exec | Exec |
+| echo | Echo |
+
+Interestingly, we can —and we do— generate the ~match~ statement with the
+following Emacs lisp routine.
+
+#+NAME: gen-run-match
+#+BEGIN_SRC emacs-lisp :var cmds=cleopatra-commands
+(mapconcat
+ (lambda (cmd)
+   (format "(\"%s\", Some(args)) => %s::go(args),"
+           (nth 0 cmd)
+           (nth 1 cmd)))
+ cmds
+ "\n")
 #+END_SRC
 
 ** ~cleopatra exec~
