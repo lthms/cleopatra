@@ -7,7 +7,7 @@
 
 use std::process::Command;
 use colored::*;
-use clap::ArgMatches;
+use clap::{ArgMatches};
 
 use crate::configuration::Config;
 use crate::error::{Error, Raise};
@@ -24,6 +24,8 @@ pub mod configuration;
 <<subcommands-func>>
 
 <<helpers>>
+
+<<command-trait>>
 #+END_SRC
 
 In this document, we explain the implementation of the ~cleopatra~ CLI tool. We
@@ -41,9 +43,79 @@ then provide an implementation for the related CLI, we enjoy the facilities
 provided by literate programming and the ~noweb~ feature of Babel to provide the
 specification of a given subcommand and its implementation in the same section.
 
+* The =CleopatraCommand= Trait
+
+From a high-level perspective, the execution of *~cleopatra~* can be divided
+into three steps:
+
+  1. Command-line arguments parsing
+  2. Command-line interpretation
+  3. Actual Business logic
+
+The first step is achieved with ~clap~, but we still need to take care of the
+rest.
+
+To that end, we first introduce the trait =CleopatraCommand=. Each *~cleopatra~*
+command will have a dedicated type equipped with two methods: =with_args= (step
+2), and =run= (step 3). Besides, the =go= method provided by =CleopatraCommand=
+binds the two methods together.
+
+#+BEGIN_SRC rust :noweb-ref command-trait
+pub trait CleopatraCommand<'a>
+where Self : Sized {
+    fn of_args(args : &'a ArgMatches<'static>) -> Self;
+
+    fn run(&self) -> Result<(), Error>;
+
+    fn go(args : &'a ArgMatches<'static>) -> Result<(), Error> {
+        Self::of_args(args).run()
+    }
+}
+#+END_SRC
+
+=CleopatraCommand= takes a lifetime as a parameter due to an implementation
+details of ~clap~. When fetching arguments value from a ~&'a ArgMatches~
+reference, the result is a reference with ~'a~ as its lifetime. For the “command
+types” of *~cleopatra~* to use these reference as-is (and therefore avoid
+unnecessary copies), they need to be parameterized with the same lifetime as
+~ArgMatches~.
+
+A typical implementationg of the =CleopatraCommand= trait will therefore be
+declared as
+
+#+BEGIN_SRC rust
+impl<'a> CleopatraCommand<'a> for FooCommand<'a> {
+    // ...
+}
+#+END_SRC
+
 * Commands
 
-** ~cleopatra~
+The following table lists the commands supported by *~cleopatra~*, with their
+dedicated types.
+
+#+NAME: cleopatra-commands
+| exec | Exec |
+
+Interestingly, we can —and we do— generate the ~match~ statement with the
+following Emacs lisp routine.
+
+#+NAME: gen-run-match
+#+BEGIN_SRC emacs-lisp :var cmds=cleopatra-commands
+(mapconcat
+ (lambda (cmd)
+   (format "(\"%s\", Some(args)) => %s::go(args),"
+           (nth 0 cmd)
+           (nth 1 cmd)))
+ cmds
+ "\n")
+#+END_SRC
+
+** Usage
+
+We first give the general-purpose information about *~cleopatra~*: its name,
+author and current version (we recall the version number is specify once
+[[file:../commons.org][in the ~commons.org~ file]]).
 
 #+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
 (version: "<<cleopatra-version()>>")
@@ -67,7 +139,7 @@ fn build_subcommand() -> Result<(), Error> {
 ** ~cleopatra exec~
 
 ~cleopatra exec CMD~ will execute ~CMD~ from the root of the current cleopatra
-project, with the environment variables defined in the cleopatra.toml set as
+project, with the environment variables defined in the ~cleopatra.toml~ set as
 expected.
 
 #+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
@@ -77,20 +149,42 @@ expected.
   (@arg CMD: +required +takes_value +multiple "The command to run"))
 #+END_SRC
 
-So, for instance
+So, for instance ~cleopatra exec printenv ROOT~ will print the root of the
+project, that is the directory which contains ~cleopatra.toml~.
 
-#+BEGIN_SRC shell
-cleopatra exec printenv ROOT
+The
+[[https://docs.rs/clap/2.33.0/clap/enum.AppSettings.html#variant.TrailingVarArg][=TrailingVarArg=]]
+settings is used to tell to ~clap~ not to parse the arguments of ~exec~. That
+is, if we call ~cleopatra exec echo -n hi~, the default behavior of ~clap~ would
+be to try to parse ~n~ as a flag. With =TrailingVarArg=, it does not, and ~-n~
+is just parsed as the string ~"-n"~.
+
+The following table lists the fields of the =Exec= structure
+
+#+NAME: exec-specs
+| ~command~ | ~Vec<&'a str>~ | A list of strings which together form the command to execute |   |
+
+#+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes :exports none
+<<gen-rust-struct(name="Exec<'a>", fields=exec-specs)>>
 #+END_SRC
 
-will print the root of the project, that is the directory which contains
-~cleopatra.toml~.
+As one might expect, implementing =CleopatraCommand= does not pose any
+fundamental challenge.  In particular, the =run= method is simply the
+composition of =Config::find_project_then= with the =exec= helper.
 
 #+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes
-fn sh_subcommand(cmd : &[&str]) -> Result<(), Error> {
-    Config::find_project_then(|_| {
-       exec(cmd)
-    })
+impl<'a> CleopatraCommand<'a> for Exec<'a> {
+    fn of_args(args : &'a ArgMatches<'static>) -> Exec<'a> {
+        let cmd = args.values_of("CMD")
+            .unwrap()
+            .collect();
+
+        Exec { command : cmd }
+    }
+
+    fn run(&self) -> Result<(), Error> {
+        Config::find_project_then(|_|  exec(&self.command))
+    }
 }
 #+END_SRC
 
@@ -137,15 +231,10 @@ fn main() -> () {
 #+END_SRC
 
 #+BEGIN_SRC rust :noweb-ref run :noweb yes
-fn run(matches : ArgMatches) -> Result<(), Error> {
+fn run(matches : ArgMatches<'static>) -> Result<(), Error> {
     match matches.subcommand() {
         ("", _) => build_subcommand(),
-        ("exec", Some(args)) =>
-            sh_subcommand(
-                &args.values_of("CMD")
-                    .unwrap()
-                    .collect::<Vec<&str>>()
-            ),
+        <<gen-run-match()>>
         _ => unimplemented!(),
     }?;
 
