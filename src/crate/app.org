@@ -65,7 +65,7 @@ pub trait CleopatraCommand<'a>
 where Self : Sized {
     fn of_args(args : &'a ArgMatches<'static>) -> Self;
 
-    fn run(&self) -> Result<(), Error>;
+    fn run(self) -> Result<(), Error>;
 
     fn go(args : &'a ArgMatches<'static>) -> Result<(), Error> {
         Self::of_args(args).run()
@@ -91,7 +91,7 @@ impl<'a> CleopatraCommand<'a> for FooCommand<'a> {
 
 * Commands
 
-The following table lists the commands supported by *~cleopatra~*, with their
+The following table lists the subcommands supported by *~cleopatra~*, with their
 dedicated types.
 
 #+NAME: cleopatra-commands
@@ -120,19 +120,57 @@ author and current version (we recall the version number is specify once
 #+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
 (version: "<<cleopatra-version()>>")
 (author: "Thomas Letan <lthms@soap.coffee")
+(@setting ArgsNegateSubcommands)
 (about: "An extensible toolchain with facilities for literate programming")
 #+END_SRC
 
-~cleopatra~ will executes the default command, that is building the current
-project.
+** ~cleopatra~
+
+Calling ~cleopatra~ without any particular subcommand will run ~make~ with the
+appropriate Makefile.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
+(@arg parallel: -j "Enable parallel build")
+(@arg RECIPE: "The recipe to run (default to `postbuild')")
+#+END_SRC
+
+We introduce the structure =Make=, and provide the necessary implementation of
+the trait =CleopatraCommand=.
+
+#+NAME: make-specs
+| ~recipe~   | ~&'a str~ | The recipe to execute                             |   |
+| ~parallel~ | ~bool~    | Set to `true` to allow for parallel build by Make |   |
+
+#+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes :exports none
+<<gen-rust-struct(name="Make<'a>", fields=make-specs)>>
+#+END_SRC
+
+Note that the =run= method will first call =make init=, in order to ensure that
+generation processes are up-to-date (see [[file:../build-process.org][the
+related chapter]] if interested).
 
 #+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes
-fn build_subcommand() -> Result<(), Error> {
-    Config::find_project_then(|_| {
-        // TODO: CLEOPATRA_DIRECTORY is hardcoded here
-        exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])?;
-        exec(&vec!["make", "-f", ".cleopatra/boot.mk", "postbuild"])
-    })
+impl<'a> CleopatraCommand<'a> for Make<'a> {
+    fn of_args(args : &'a ArgMatches<'static>) -> Make<'a> {
+        let recipe = args.value_of("RECIPE").unwrap_or("postbuild");
+        let jobs = args.is_present("parallel");
+
+        Make { recipe : recipe, parallel : jobs }
+    }
+
+    fn run(self) -> Result<(), Error> {
+        Config::find_project_then(|_| {
+            exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])?;
+
+            let mut cmd = vec!["make", "-f", ".cleopatra/boot.mk", self.recipe];
+
+            if self.parallel {
+                cmd.push("-j");
+            }
+
+            exec(&cmd)
+        })
+    }
 }
 #+END_SRC
 
@@ -182,11 +220,12 @@ impl<'a> CleopatraCommand<'a> for Exec<'a> {
         Exec { command : cmd }
     }
 
-    fn run(&self) -> Result<(), Error> {
+    fn run(self) -> Result<(), Error> {
         Config::find_project_then(|_|  exec(&self.command))
     }
 }
 #+END_SRC
+
 
 * Helpers
 ** =exec=
@@ -211,7 +250,7 @@ fn exec(cmd : &[&str]) -> Result<(), Error> {
 
 #+BEGIN_SRC rust :noweb-ref args :noweb no-export :exports none
 fn args() -> ArgMatches<'static> {
-    clap_app!(myapp =>
+    clap_app!(cleopatra =>
             <<cli-specs>>
         ).get_matches()
 }
@@ -233,9 +272,9 @@ fn main() -> () {
 #+BEGIN_SRC rust :noweb-ref run :noweb yes
 fn run(matches : ArgMatches<'static>) -> Result<(), Error> {
     match matches.subcommand() {
-        ("", _) => build_subcommand(),
+        ("", _) => Make::go(&matches),
         <<gen-run-match()>>
-        _ => unimplemented!(),
+        (cmd, _) => Err(Error::UnknownSubcommand(String::from(cmd))),
     }?;
 
     Ok(())
