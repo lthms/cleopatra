@@ -71,7 +71,9 @@ mode and Babel.
   (setq org-confirm-babel-evaluate nil)
   (setq org-src-preserve-indentation t)
   (add-to-list 'org-babel-default-header-args
-               '(:mkdirp . "yes")))
+               '(:mkdirp . "yes"))
+  (add-to-list 'org-babel-default-header-args
+               '(:noweb-sep . "\n\n")))
 #+END_SRC
 
 ** =cleopatra:tangle-publish=
