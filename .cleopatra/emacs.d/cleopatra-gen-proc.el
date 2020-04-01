@@ -5,16 +5,12 @@
   (let ((tangled (cleopatra:tangle-publish conf filename pub-dir))
         (proc (file-name-sans-extension (file-name-nondirectory  filename))))
     (insert
-     (format "include %s.mk\n" proc))
-    (insert
-     (format "CONFIGURE += %s\n" (mapconcat 'identity tangled " ")))
-    (insert
+     (format "include %s.mk\n" proc)
+     (format "CONFIGURE += %s\n" (mapconcat 'identity tangled " "))
      (format "prebuild : %s-prebuild\nbuild : %s-build\npostbuild : %s-postbuild\n"
-             proc proc proc))
-    (insert
+             proc proc proc)
      (format "%s-build : %s-prebuild\n%s-postbuild : %s-build\n"
-             proc proc proc proc))
-    (insert
+             proc proc proc proc)
      (format ".PHONY : %s-prebuild %s-build %s-postbuild\n"
              proc proc proc proc))))
 
