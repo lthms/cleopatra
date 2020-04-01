@@ -4,7 +4,9 @@
 
 # begin generated files
 .cleopatra
-cleopatra.mk
+book.mk
+export-book.el
+code.mk
 export-cleopatra.el
 build.log
 code/

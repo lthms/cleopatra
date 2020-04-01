@@ -2,4 +2,5 @@
 #+AUTHOR: Thomas Letan
 #+HTML_LINK_UP: index.html
 
-- [[file:procs/cleopatra.html][Cleopatra’s Export Process]] ::
+- [[file:procs/book.html][Exporting cleopatra’s Book]] ::
+- [[file:procs/code.html][Exporting cleopatra’s Code]] ::
