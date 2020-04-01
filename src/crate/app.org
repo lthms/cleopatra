@@ -94,13 +94,16 @@ fn exec(cmd : &[&str]) -> Result<(), Error> {
 
 * The =main= of Cleopatra
 
-#+BEGIN_SRC rust :tangle app/main.rs :noweb yes :exports none
+#+BEGIN_SRC rust :tangle src/main.rs :noweb yes :exports none
 #[macro_use] extern crate clap;
 
 use cleopatra::configuration::Config;
 use cleopatra::error::{Error, Raise};
 use std::process::Command;
 use colored::*;
+
+pub mod error;
+pub mod configuration;
 
 fn main() -> () {
     match run() {
