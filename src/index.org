@@ -1,6 +1,9 @@
 #+TITLE: cleopatra: An Extensible Toolchain
 #+AUTHOR: Thomas Letan
 
+#+attr_html: :width 100px
+[[./cleopatra.png]]
+
 We introduce cleopatra, a generic, extensible toolchain with facilities for
 literate programming projects using [[https://orgmode.org/][Org mode]] and more.  The key concept of
 *~cleopatra~* is to write so-called generation processes as Makefile rules.
