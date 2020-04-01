@@ -2,7 +2,48 @@
 #+AUTHOR: Thomas Letan
 #+HTML_LINK_UP: index.html
 
-* Command-line Interface
+#+BEGIN_SRC rust :tangle src/main.rs :noweb yes :exports none
+#[macro_use] extern crate clap;
+
+use std::process::Command;
+use colored::*;
+use clap::ArgMatches;
+
+use crate::configuration::Config;
+use crate::error::{Error, Raise};
+
+pub mod error;
+pub mod configuration;
+
+<<main>>
+
+<<run>>
+
+<<args>>
+
+<<subcommands-func>>
+
+<<helpers>>
+#+END_SRC
+
+In this document, we explain the implementation of the ~cleopatra~ CLI tool. We
+do not try to parse command-line arguments ourselves, but we rather rely on
+[[https://clap.rs/][~clap~]], a powerful Rust crate that can do it for us as
+long as we provide a specification for the desired CLI.  ~clap~ encodes a CLI
+specification as a Rust structure called
+[[https://docs.rs/clap/2.33.0/clap/struct.App.html][=App=]] which follows the
+/builder/ pattern. This quickly becomes cumbersome and verbose to use, and this
+is why over time ~clap~ has implemented more high-level way to define a CLI.
+
+We proceed as follows: we use the =clap_app!= macro to build the =App= type
+using a S-Expression. Rather than defining the S-Expression at one place, and
+then provide an implementation for the related CLI, we enjoy the facilities
+provided by literate programming and the ~noweb~ feature of Babel to provide the
+specification of a given subcommand and its implementation in the same section.
+
+* Commands
+
+** ~cleopatra~
 
 #+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
 (version: "<<cleopatra-version()>>")
@@ -10,36 +51,17 @@
 (about: "An extensible toolchain with facilities for literate programming")
 #+END_SRC
 
-#+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
-(@subcommand exec =>
-  (about: "Execute a command from the root of the current project")
-  (@setting TrailingVarArg)
-  (@arg CMD: +required +takes_value +multiple "The command to run"))
-#+END_SRC
-
-* Commands
-
-** ~cleopatra~
-
 ~cleopatra~ will executes the default command, that is building the current
 project.
 
-#+BEGIN_SRC rust :noweb-ref subcommands-func :exports none :noweb yes
-<<build-proto>> {
-    <<build-body>>
+#+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes
+fn build_subcommand() -> Result<(), Error> {
+    Config::find_project_then(|_| {
+        // TODO: CLEOPATRA_DIRECTORY is hardcoded here
+        exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])?;
+        exec(&vec!["make", "-f", ".cleopatra/boot.mk", "postbuild"])
+    })
 }
-#+END_SRC
-
-#+BEGIN_SRC rust :noweb-ref build-proto
-fn build_subcommand() -> Result<(), Error>
-#+END_SRC
-
-#+BEGIN_SRC rust :noweb-ref build-body
-Config::find_project_then(|_| {
-    // TODO: CLEOPATRA_DIRECTORY is hardcoded here
-    exec(&vec!["make", "-f", ".cleopatra/boot.mk", "init"])?;
-    exec(&vec!["make", "-f", ".cleopatra/boot.mk", "postbuild"])
-})
 #+END_SRC
 
 ** ~cleopatra exec~
@@ -47,6 +69,13 @@ Config::find_project_then(|_| {
 ~cleopatra exec CMD~ will execute ~CMD~ from the root of the current cleopatra
 project, with the environment variables defined in the cleopatra.toml set as
 expected.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
+(@subcommand exec =>
+  (about: "Execute a command from the root of the current project")
+  (@setting TrailingVarArg)
+  (@arg CMD: +required +takes_value +multiple "The command to run"))
+#+END_SRC
 
 So, for instance
 
@@ -57,20 +86,12 @@ cleopatra exec printenv ROOT
 will print the root of the project, that is the directory which contains
 ~cleopatra.toml~.
 
-#+BEGIN_SRC rust :noweb-ref subcommands-func :exports none :noweb yes
-<<exec-proto>> {
-    <<exec-body>>
+#+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes
+fn sh_subcommand(cmd : &[&str]) -> Result<(), Error> {
+    Config::find_project_then(|_| {
+       exec(cmd)
+    })
 }
-#+END_SRC
-
-#+BEGIN_SRC rust :noweb-ref exec-proto
-fn sh_subcommand(cmd : &[&str]) -> Result<(), Error>
-#+END_SRC
-
-#+BEGIN_SRC rust :noweb-ref exec-body
-Config::find_project_then(|_| {
-    exec(cmd)
-})
 #+END_SRC
 
 * Helpers
@@ -92,21 +113,19 @@ fn exec(cmd : &[&str]) -> Result<(), Error> {
 }
 #+END_SRC
 
-* The =main= of Cleopatra
+* =main=
 
-#+BEGIN_SRC rust :tangle src/main.rs :noweb yes :exports none
-#[macro_use] extern crate clap;
+#+BEGIN_SRC rust :noweb-ref args :noweb no-export :exports none
+fn args() -> ArgMatches<'static> {
+    clap_app!(myapp =>
+            <<cli-specs>>
+        ).get_matches()
+}
+#+END_SRC
 
-use cleopatra::configuration::Config;
-use cleopatra::error::{Error, Raise};
-use std::process::Command;
-use colored::*;
-
-pub mod error;
-pub mod configuration;
-
+#+BEGIN_SRC rust :noweb-ref main
 fn main() -> () {
-    match run() {
+    match run(args()) {
         Err(err) => {
             let msg = err.message();
             eprintln!("{} {}\n{}", "Error:".red().bold(), msg.title, msg.description);
@@ -115,12 +134,10 @@ fn main() -> () {
         _ => (),
     }
 }
+#+END_SRC
 
-fn run() -> Result<(), Error> {
-    let matches = clap_app!(myapp =>
-        <<cli-specs>>
-    ).get_matches();
-
+#+BEGIN_SRC rust :noweb-ref run :noweb yes
+fn run(matches : ArgMatches) -> Result<(), Error> {
     match matches.subcommand() {
         ("", _) => build_subcommand(),
         ("exec", Some(args)) =>
@@ -134,8 +151,4 @@ fn run() -> Result<(), Error> {
 
     Ok(())
 }
-
-<<subcommands-func>>
-
-<<helpers>>
 #+END_SRC
