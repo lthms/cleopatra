@@ -96,6 +96,7 @@ dedicated types.
 
 #+NAME: cleopatra-commands
 | exec | Exec |
+| echo | Echo |
 
 Interestingly, we can —and we do— generate the ~match~ statement with the
 following Emacs lisp routine.
@@ -226,7 +227,43 @@ impl<'a> CleopatraCommand<'a> for Exec<'a> {
 }
 #+END_SRC
 
+** ~cleopatra echo~
 
+~cleopatra echo CATEGORY DESCRIPTION~ will echo a formatted message a la
+~cargo~.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref cli-specs :noweb yes
+(@subcommand echo =>
+  (about: "Echo a la cargo")
+  (@arg CATEGORY: +required "")
+  (@arg DESCRIPTION: +required ""))
+#+END_SRC
+
+The following table lists the fields of the =Echo= structure
+
+#+NAME: echo-specs
+| ~cat~ | ~&'a str~ |  |   |
+| ~descr~ | ~&'a str~ |  |   |
+
+#+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes :exports none
+<<gen-rust-struct(name="Echo<'a>", fields=echo-specs)>>
+#+END_SRC
+
+#+BEGIN_SRC rust :noweb-ref subcommands-func :noweb yes
+impl<'a> CleopatraCommand<'a> for Echo<'a> {
+    fn of_args(args : &'a ArgMatches<'static>) -> Echo<'a> {
+        let cat = args.value_of("CATEGORY").unwrap();
+        let descr = args.value_of("DESCRIPTION").unwrap();
+
+        Echo { cat : cat, descr : descr }
+    }
+
+    fn run(self) -> Result<(), Error> {
+        println!("{:>12} {}", self.cat.green(), self.descr);
+        Ok(())
+    }
+}
+#+END_SRC
 * Helpers
 ** =exec=
 

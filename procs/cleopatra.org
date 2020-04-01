@@ -6,18 +6,17 @@
 
 #+BEGIN_SRC makefile :tangle cleopatra.mk
 cleopatra-prebuild :
-	@echo "  export  cleopatra"
-	@cleopatra exec -- cleopatra-run-elisp export-cleopatra.el 2>> build.log
+	@cleopatra echo "Exporting" "cleopatra"
+	@cleopatra exec -- cleopatra-run-elisp export-cleopatra.el >> build.log
 
 ARTIFACTS += code/ book/
 
 cleopatra-build :
-	@echo "   cargo  build"
-	@cd code/; cargo install --path . 2>> ${ROOT}/build.log
-	@cd code/; cargo doc 2>> ${ROOT}/build.log
+	@cd code/; cargo install --path .
+	@cd code/; cargo doc
 
 cleopatra-postbuild :
-	@echo " install  cleopatra files"
+	@cleopatra echo "Updating" ".cleopatra directory"
 	@cp code/elisp/*.el .cleopatra/emacs.d
 	@cp code/bin/* .cleopatra/bin
 	@cp code/boot.mk .cleopatra/
