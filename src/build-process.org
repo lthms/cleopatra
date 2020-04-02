@@ -1,13 +1,18 @@
-#+TITLE: Cleopatra’ Build Process
+#+TITLE: Build Process
 #+AUTHOR: Thomas Letan
 #+HTML_LINK_UP: index.html
+
+In this chapter, we describe how the Build Process of *~cleopatra~* works, and
+how it is implemented in terms of Makefile recipes. Besides, potential users of
+*~cleopatra~* will learn how they should structure their generation
+processes. We recall that the generation processes *~cleopatra~* uses to build
+herself [[file:procs.org][are documented on this very website]].
 
 * ~boot.mk~
 
 #+BEGIN_SRC makefile :tangle boot.mk
 ARTIFACTS := build.log
 CONFIGURE := .cleopatra
-
 PROCS := $(wildcard ${CLEOPATRA_GENERATION_PROCESSES}/*.org)
 
 init :
@@ -22,9 +27,18 @@ build : prebuild
 postbuild : build
 	@cleopatra echo "Updating" ".gitignore"
 	@cleopatra-update-gitignore ${CONFIGURE} ${ARTIFACTS}
+	@rm ${CLEOPATRA_DIRECTORY}/deps.mk
 
 .PHONY : init prebuild build postbuild
 #+END_SRC
+
+*~cleopatra~* leverages the ~postbuild~ phase to delete the ~deps.mk~ file
+previously generated during the ~init~ phase. We do that to prevent the
+following scenario from happening: one of the generation processes tangles an
+invalid Makefile (/e.g./, it contains spaces in place of tabs), which means
+~make~ exits without trying to achieve anything… preventing a fixed generation
+process to be ever tangled. Since a new ~deps.mk~ file is generated anyway,
+keeping it between two builds does not make any sense in any case.
 
 * ~cleopatra-gen-proc.el~
 
