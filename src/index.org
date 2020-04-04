@@ -10,21 +10,17 @@ literate programming projects using [[https://orgmode.org/][Org mode]] and more.
 The present document presents the source code of *~cleopatra~*
 call_cleopatra-version().
 
-- [[file:introduction.org][0 – Introduction]] ::
-  We introduce the key concepts of *~cleopatra~*, and her so-called “Build
-  Process” in particular. Users who are willing to use *~cleopatra~* for
-  building their own projects can focus on this chapter.
-- [[file:cleopatra-crate.org][1 – The cleopatra Crate]] ::
+- [[file:build-process.org][1 — The cleopatra Build Process]] ::
+  In this chapter, we introduce how a so-called *~cleopatra~* build process
+  works. Users interested in using *~cleopatra~* for their projects can read
+  this document to know how to write their generation processes.
+- [[file:cleopatra-crate.org][2 – The cleopatra Crate]] ::
   Users interact with *~cleopatra~* through a command-line tool implemented in
   Rust. This chapter describes its implementation.
-- [[file:cleopatra-elisp.org][2 — cleopatra’s Elisp Package]] ::
+- [[file:cleopatra-elisp.org][3 — cleopatra’s Elisp Package]] ::
   Under the hood, Cleopatra relies on Emacs to tangle the Org documents which
   specify user-defined generation processes. This chapter describes the
   Elisp configuration code used to that end.
-- [[file:build-process.org][3 — Build Process]] ::
-  Generation processes in *~cleopatra~* are primilarly Makefiles with a
-  particular structure. In this chapter, we describe the “build sequence” of
-  *~cleopatra~*, and the helpers which make it happen.
 - [[file:procs.org][4 — cleopatra by Examble]] ::
   *~cleopatra~* is a literate programming project itself, and is actually
   bootstrapped. This chapter describes the generation processes used to build

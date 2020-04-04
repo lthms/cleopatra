@@ -1,59 +1,167 @@
-#+TITLE: Build Process
+#+TITLE: The cleopatra Build Process
 #+AUTHOR: Thomas Letan
 #+HTML_LINK_UP: index.html
 
-In this chapter, we describe how the Build Process of *~cleopatra~* works, and
-how it is implemented in terms of Makefile recipes. Besides, potential users of
-*~cleopatra~* will learn how they should structure their generation
-processes. We recall that the generation processes *~cleopatra~* uses to build
-herself [[file:procs.org][are documented on this very website]].
+In this chapter, we aim to explain how *~cleopatra~* works. And since
+*~cleopatra~* is far from being the single available build tool (it is merely
+an overlay on an existing one, actually!), we avoid ambiguity by defining a
+small, yet consistent terminology throughout this book.
 
-* ~boot.mk~
+- Root :: The directory which contains the ~cleopatra.toml~ file, and supposedly
+  the root of the source tree of the software that *~cleopatra~* is expected to
+  build.
+- Workspace :: The execution environment set up by *~cleopara~* prior to
+  starting a build. In particular, this workspace consists in
+    - The current working directory is the root of the project
+    - The ~ROOT~ environment variable has been set with the root of the project
+    - The ~CLEOPATRA_DIRECTORY~ environment variable has been set with
+      ~${ROOT}/.cleopatra~
+    - The ~CLEOPATRA_GENERATION_PROCESSES~ environment variable has been set
+      with the value of the ~generation_processes~ entry in ~cleopatra.toml~
+- Generation Process :: An Org document describing a set of build recipes, along
+  with the auxiliary files used by these rules.
+- Build Process :: How *~cleopatra~* leverages the generation processes supplied
+  by her users to actually build their projects.
 
-#+BEGIN_SRC makefile :tangle boot.mk
+We now describe the build process enacted by *~cleopatra~*, which allows us to
+describe how a typical generation process has to be structured in order to
+work.
+
+* Overview
+
+As quickly mentioned, *~cleopatra~* is designed as an overlay on an
+existing build system, not a build system implemented from scratch. Currently,
+only ~make~ is supported, it would be pretty easy to generalize our approach to
+others (/e.g./, ~ninja~ comes to mind).
+
+When users call *~cleopatra~* within the source tree of a given project, it
+searches for a ~cleopatra.toml~ file. If it finds one, it set up its workspace,
+then starts a four stage build process. These four distinct, sequential phases
+are ~init~, ~prebuild~, ~build~, and ~postbuild~; they are implemented as
+Makefile recipes in ~${CLEOPATRA_DIRECTORY/boot.mk}~, whose content is the
+following:
+
+#+BEGIN_SRC makefile :tangle boot.mk :noweb yes
+<<variables>>
+
+<<init-recipe>>
+
+<<build-deps>>
+
+<<postbuild-recipe>>
+
+<<clean-recipes>>
+
+.PHONY : init prebuild build postbuild clean cleanall
+#+END_SRC
+
+The ~init~ phase is reserved
+to *~cleopatra~* itself: it uses it to tangles the generation processes supplied
+by the user. These generation processes then populates the ~prebuild~, ~build~
+and ~postbuild~ phases with their own recipes.  More precisely, a file
+~proc.org~ within the ~${CLEOPATRA_GENERATION_PROCESSES}~ directory defined a
+generation process called ~proc~. ~proc~ can defined three recipes:
+~proc-prebuild~, ~proc-build~, and ~proc-postbuild~, whose dependencies are the
+following:
+
+#+BEGIN_SRC dot :file ./dependencies.png :exports results
+digraph deps {
+  procprebuild [ label = "proc-prebuild" ];
+  procbuild [ label = "proc-build" ];
+  procpostbuild [ label = "proc-postbuild" ];
+
+  build -> prebuild;
+  postbuild -> build;
+
+  prebuild -> procprebuild;
+  build -> procbuild;
+  postbuild -> procpostbuild;
+
+  procpostbuild -> procbuild;
+  procbuild -> procprebuild;
+}
+#+END_SRC
+
+In practice, the build process of *~cleopatra~* consists in two ~make~
+invocation: ~make init~, then ~make postbuild~. By transitivity, ~postbuild~
+pulls ~build~, which pulls ~prebuild~, according to the following Makefile
+rules.
+
+#+BEGIN_SRC makefile :noweb-ref build-deps
+prebuild :
+build : prebuild
+postbuild : build
+#+END_SRC
+
+We then introduce two variables to list the output of the generation processes,
+with two purposes in mind: keeping the ~.gitignore~ up-to-date automatically,
+and providing rules to remove them.
+
+- ARTIFACTS ::
+  Short-term artifacts which can be removed frequently without too much
+  hassle. They will be removed by ~make clean~.
+- CONFIGURE ::
+  Long-term artifacts whose generation can be time consuming. They will only be
+  removed by ~make cleanall~.
+
+#+BEGIN_SRC makefile :noweb-ref variables
 ARTIFACTS := build.log
 CONFIGURE := .cleopatra
+#+END_SRC
+
+#+BEGIN_SRC makefile :noweb-ref clean-recipes
+clean :
+	rm -rf ${ARTIFACTS}
+
+cleanall : clean
+	rm -rf ${CONFIGURE}
+#+END_SRC
+
+* The ~init~ phase
+
+The goal of the ~init~ phase is twofold. Firstly, *~cleopatra~* tangles the
+generation processes present in the ~CLEOPATRA_GENERATION_PROCESSES~ directory
+at that time. Secondly, it generates several files whose purpose is to encode
+the dependency graph introduced in the previous section.
+
+We first recall the ~init~ phase is implemented in the
+~${CLEOPATRA_DIRECTORY}/boot.mk~ as follows.
+
+#+BEGIN_SRC makefile :noweb-ref init-recipe
 PROCS := $(wildcard ${CLEOPATRA_GENERATION_PROCESSES}/*.org)
 
 init :
 	@cleopatra echo "Exporting" "generation process"
-	@cleopatra-gen-deps ${PROCS}
 	@cleopatra-run-elisp "${CLEOPATRA_DIRECTORY}/emacs.d/cleopatra-gen-proc.el" > build.log
-
--include ${CLEOPATRA_DIRECTORY}/deps.mk
-
-prebuild :
-build : prebuild
-postbuild : build
-	@cleopatra echo "Updating" ".gitignore"
-	@cleopatra-update-gitignore ${CONFIGURE} ${ARTIFACTS}
-	@rm ${CLEOPATRA_DIRECTORY}/deps.mk
-
-.PHONY : init prebuild build postbuild
+	@cleopatra-gen-deps ${PROCS}
 #+END_SRC
 
-*~cleopatra~* leverages the ~postbuild~ phase to delete the ~deps.mk~ file
-previously generated during the ~init~ phase. We do that to prevent the
-following scenario from happening: one of the generation processes tangles an
-invalid Makefile (/e.g./, it contains spaces in place of tabs), which means
-~make~ exits without trying to achieve anything… preventing a fixed generation
-process to be ever tangled. Since a new ~deps.mk~ file is generated anyway,
-keeping it between two builds does not make any sense in any case.
+That is, the ~init~ phase relies on two auxiliary scripts.
 
-* ~cleopatra-gen-proc.el~
+** Tangling Generation Processes
 
 #+BEGIN_SRC emacs-lisp :tangle emacs.d/cleopatra-gen-proc.el :noweb yes :exports none
 ;;; cleopatra-gen-proc.el --- The cleopatra Emacs Library
 ;;; Commentary:
 ;;; Code:
 <<cleopatra-gen-proc-el>>
-
-(provide 'cleopatra-gen-proc)
 ;;; cleopatra-gen-proc.el ends here
 #+END_SRC
 
+~cleopatra-gen-proc.el~ is implemented in Emacs script, and basically consists
+in using [[https://orgmode.org/manual/Publishing.html][=org-publish=]] to tangle
+the generation processes. We use a dedicated publishing function we call
+~gen-processes-tangle-publish~.
+
+=gen-processes-tangle-publish= proceeds by calling
+[[file:cleopatra-elisp.org][=cleopatra:tangle-publish=]] to tangle a file, and
+processes its output (that is, the list of file produces by Org to tangle
+~filename~) to generates a dependency file for the generation process.  To
+generate a file in Emacs lisp, we use the =with-temp-buffer= to create a new
+buffer which we modify using =insert=, and save using =write-file=.
+
 #+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-gen-proc-el
-(defun cleopatra:gen-processes-tangle-publish (conf filename pub-dir)
+(defun gen-processes-tangle-publish (conf filename pub-dir)
   (let ((tangled (cleopatra:tangle-publish conf filename pub-dir))
         (proc (file-name-sans-extension (file-name-nondirectory  filename))))
     (with-temp-buffer
@@ -67,7 +175,32 @@ keeping it between two builds does not make any sense in any case.
        (format ".PHONY : %s-prebuild %s-build %s-postbuild\n"
                proc proc proc proc))
       (write-file (format "%s/%s.deps.mk" (getenv "CLEOPATRA_DIRECTORY") proc)))))
+#+END_SRC
 
+For a generation process ~proc~, =gen-processes-tangle-publish= will generates
+a file ~${CLEOPATRA_DIRECTORY}/proc.deps.mk~ which contains
+
+#+BEGIN_SRC makefile
+include proc.mk
+CONFIGURE += <list of files produced when tangling proc.org>
+prebuild : proc-prebuild
+build : proc-build
+postbuild : proc-postbuild
+proc-build : proc-prebuild
+proc-postbuild : proc-build
+.PHONY : proc-prebuild proc-build proc-postbuild
+#+END_SRC
+
+In addition to defining =gen-processes-tangle-publish=, we configure Org and
+Babel by
+
+  - Using [[file:cleopatra-elisp.org][=cleopatra:configure=]]
+  - Adding ~shell~ to the list of language that can be evaluated by Babel
+  - Setting the =org-publish-project-alist= to tangle the generation processes
+    in ~${CLEOPATRA_GENERATION_PROCESSES}~ to the root directory using the
+    =gen-processes-tangle-publish= function.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-gen-proc-el
 (cleopatra:configure)
 
 (org-babel-do-load-languages
@@ -78,12 +211,29 @@ keeping it between two builds does not make any sense in any case.
       `(("cleopatra-gen-proc"
          :base-directory ,(getenv "CLEOPATRA_GENERATION_PROCESSES")
          :publishing-directory "."
-         :publishing-function cleopatra:gen-processes-tangle-publish)))
+         :publishing-function gen-processes-tangle-publish)))
+#+END_SRC
 
+Beyond this configuration phases, the script solely consists in
+=org-publish-all=, which processes the =org-publish-project-alist=.
+
+#+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-gen-proc-el
 (org-publish-all)
 #+END_SRC
 
-* ~gen-deps~
+** Generating the Dependency Graph
+
+In the previous section, we have detailed how *~cleopatra~* a
+~${CLEOPATRA_DIRECTORY}/${proc}.deps.mk~ for each generation process in the
+~${CLEOPATRA_GENERATION_PROCESSES}~ directory.
+
+As-is, these files are not used by Makefile. To address this, *~cleopatra~*
+systematically generates ~${CLEOPATRA_DIRECTORY}/deps.mk~, a Makefile whose only
+purpose is to include each ~${proc}.deps.mk~ file.
+
+This file is generated by ~cleopatra-gen-deps~, a small Bash script whose only
+interesting point is to use ~basename~ to remove the extension of the generation
+processes.
 
 #+BEGIN_SRC bash :tangle bin/cleopatra-gen-deps :shebang "#+/bin/bash"
 out="${CLEOPATRA_DIRECTORY}/deps.mk"
@@ -97,7 +247,45 @@ for proc in "$@"; do
 done
 #+END_SRC
 
-* ~update-gitignore~
+*~cleopatra~* generates the ~deps.mk~ file at the beginning of each build, to
+ensure it is consistent with the content of the
+~${CLEOPATRA_GENERATION_PROCESSES}~ directory. However, it is more than likely
+that this file does not exists the first time *~cleopatra~* invokes ~make~
+Therefore, we include it using ~-include~ and not ~include~, so that ~make~
+knows this file is optional (and therefore does not fail if it is missing).
+
+#+BEGIN_SRC makefile :noweb-ref init-recipe
+-include ${CLEOPATRA_DIRECTORY}/deps.mk
+#+END_SRC
+
+This is the main reason why the build process of *~cleopatra~* consists in
+invoking ~make init~ (to generate, among other thing, ~deps.mk~), then ~make
+postbuild~ (to leverage it now that it exists).
+
+* The ~postbuild~ phase
+
+Contrary to ~prebuild~ and ~build~, which are left empty, *~cleopatra~* makes
+use of the ~postbuild~ phase itself.
+
+#+BEGIN_SRC makefile :noweb-ref postbuild-recipe
+postbuild :
+	@cleopatra echo "Updating" ".gitignore"
+	@cleopatra-update-gitignore ${CONFIGURE} ${ARTIFACTS}
+	@rm ${CLEOPATRA_DIRECTORY}/deps.mk
+#+END_SRC
+
+*~cleopatra~* leverages the ~postbuild~ phase to delete the ~deps.mk~ file
+previously generated during the ~init~ phase. We do that to prevent the
+following scenario from happening: one of the generation processes tangles an
+invalid Makefile (/e.g./, it contains spaces in place of tabs), which means
+~make~ exits without trying to achieve anything… preventing a fixed generation
+process to be ever tangled. Since a new ~deps.mk~ file is generated anyway,
+keeping it between two builds does not make any sense in any case.
+
+Besides, it keep the ~.gitignore~ file up-to-date, based on the ~ARTIFACTS~ and
+~CONFIGURE~ variables which have been populated by the generation processes. To
+that end, we implement the ~cleopata-update-gitignore~ script, which leverages
+some neat feature of ~sed~ I will never be able to write myself ever again.
 
 #+BEGIN_SRC bash :tangle bin/cleopatra-update-gitignore :shebang "#+/bin/bash"
 BEGIN_MARKER="# begin generated files"

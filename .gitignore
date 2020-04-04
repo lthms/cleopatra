@@ -9,6 +9,7 @@ export-book.el
 code.mk
 export-cleopatra.el
 build.log
+src/dependencies.png
 code/
 book/
 # end generated files
