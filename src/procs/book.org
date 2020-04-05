@@ -27,10 +27,8 @@ serve :
 
 #+BEGIN_SRC emacs-lisp :tangle export-book.el :noweb no-export
 (use-package rust-mode :ensure t :defer t)
-(use-package espresso-theme
-  :ensure t
-  :config
-  (load-theme 'espresso t))
+(use-package sass-mode :ensure t :defer t)
+(use-package espresso-theme :ensure t)
 
 (org-babel-do-load-languages
  'org-babel-load-languages
@@ -115,9 +113,8 @@ a:visited
 #postamble
     display : none
 
-$toc-width : 18rem
-$toc-padding : 1rem
-$content-width : 54rem
+.figure
+    text-align : center
 
 dl
     dt
@@ -130,9 +127,44 @@ dl
     a
         font-weight : bold
         text-decoration : none
+#+END_SRC
 
+** Theme Responsiveness
+
+We try to make the theme of this website responsive. Because there will be quite
+some computations to do, we first introduce several SASS variables.
+
+#+BEGIN_SRC sass :tangle style/main.sass
+$toc-width : 18rem
+$toc-padding : 1rem
+$content-width : 54rem
+#+END_SRC
+
+Using these, we can compute the minimal width required for the content and the
+table of contents to stick on the page side-by-side, *and* for the content to
+remain centered (to that end, we multiply the width taken by the table of
+contents by two).  We recall ~#{}~ is the syntax which enables variables in
+~calc()~.
+
+#+BEGIN_SRC sass :tangle style/main.sass
 $min-width : calc(#{$content-width} + 2 * (#{$toc-width} + 2*#{$toc-padding}))
+#+END_SRC
 
+There is now two cases to consider: whether or not there is room for or “full”
+page layout. If not, we just apply a padding to the ~body~, in order for the
+text not to touch the border of the screen.
+
+#+BEGIN_SRC sass :tangle style/main.sass
+@media screen and (max-width : $min-width)
+    body
+        padding : 1rem
+#+END_SRC
+
+Otherwise, we use ~position : fixed~ to “remove” ~#table-of-contents~ from
+~#content~, with ~left~ computed so that everything is centered. We recall that
+~vw~ stands for “viewport width.”
+
+#+BEGIN_SRC sass :tangle style/main.sass
 @media screen and (min-width : $min-width)
     #content
         max-width : $content-width
@@ -147,7 +179,4 @@ $min-width : calc(#{$content-width} + 2 * (#{$toc-width} + 2*#{$toc-padding}))
 
         h2
             margin-top : 0
-
-    .figure
-        text-align : center
 #+END_SRC
