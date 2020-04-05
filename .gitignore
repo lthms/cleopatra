@@ -6,6 +6,7 @@
 .cleopatra
 book.mk
 export-book.el
+style/main.sass
 code.mk
 export-cleopatra.el
 build.log

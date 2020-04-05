@@ -97,10 +97,10 @@ We then introduce two variables to list the output of the generation processes,
 with two purposes in mind: keeping the ~.gitignore~ up-to-date automatically,
 and providing rules to remove them.
 
-- ARTIFACTS ::
+- ~ARTIFACTS~ ::
   Short-term artifacts which can be removed frequently without too much
   hassle. They will be removed by ~make clean~.
-- CONFIGURE ::
+- ~CONFIGURE~ ::
   Long-term artifacts whose generation can be time consuming. They will only be
   removed by ~make cleanall~.
 

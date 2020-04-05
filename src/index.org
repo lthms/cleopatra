@@ -11,9 +11,9 @@ The present document presents the source code of *~cleopatra~*
 call_cleopatra-version().
 
 - [[file:build-process.org][1 — The cleopatra Build Process]] ::
-  In this chapter, we introduce how a so-called *~cleopatra~* build process
-  works. Users interested in using *~cleopatra~* for their projects can read
-  this document to know how to write their generation processes.
+  In this chapter, we introduce how the so-called *~cleopatra~* build process
+  works, in order for users interested in using *~cleopatra~* for their projects
+  to better understand how to write their generation processes.
 - [[file:cleopatra-crate.org][2 – The cleopatra Crate]] ::
   Users interact with *~cleopatra~* through a command-line tool implemented in
   Rust. This chapter describes its implementation.
