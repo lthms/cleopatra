@@ -157,6 +157,8 @@ text not to touch the border of the screen.
 #+BEGIN_SRC sass :tangle style/main.sass
 @media screen and (max-width : $min-width)
     body
+        max-width : $content-width
+        margin: auto
         padding : 1rem
 #+END_SRC
 
