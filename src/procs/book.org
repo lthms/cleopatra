@@ -28,7 +28,9 @@ serve :
 #+BEGIN_SRC emacs-lisp :tangle export-book.el :noweb no-export
 (use-package rust-mode :ensure t :defer t)
 (use-package sass-mode :ensure t :defer t)
-(use-package espresso-theme :ensure t)
+(use-package espresso-theme :ensure t
+  :init
+  (load-theme 'espresso t))
 
 (org-babel-do-load-languages
  'org-babel-load-languages
