@@ -28,7 +28,7 @@ code-build :
          :base-directory "src"
          :publishing-directory "code"
          :recursive t
-         :exclude "commons.org"
+         :exclude "procs/"
          :publishing-function cleopatra:tangle-publish)))
 
 (org-publish-all)
