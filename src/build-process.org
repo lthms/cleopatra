@@ -270,7 +270,7 @@ use of the ~postbuild~ phase itself.
 #+BEGIN_SRC makefile :noweb-ref postbuild-recipe
 postbuild :
 	@cleopatra echo "Updating" ".gitignore"
-	@cleopatra-update-gitignore ${CONFIGURE} ${ARTIFACTS}
+	@cleopatra-update-gitignore $(sort ${CONFIGURE} ${ARTIFACTS})
 	@rm ${CLEOPATRA_DIRECTORY}/deps.mk
 #+END_SRC
 
@@ -282,10 +282,12 @@ invalid Makefile (/e.g./, it contains spaces in place of tabs), which means
 process to be ever tangled. Since a new ~deps.mk~ file is generated anyway,
 keeping it between two builds does not make any sense in any case.
 
-Besides, it keep the ~.gitignore~ file up-to-date, based on the ~ARTIFACTS~ and
-~CONFIGURE~ variables which have been populated by the generation processes. To
-that end, we implement the ~cleopata-update-gitignore~ script, which leverages
-some neat feature of ~sed~ I will never be able to write myself ever again.
+Besides, it keep the ~.gitignore~ file up-to-date, based on the
+~ARTIFACTS~ and ~CONFIGURE~ variables (sorted with the =sort=
+function) which have been populated by the generation processes. To
+that end, we implement the ~cleopata-update-gitignore~ script, which
+leverages some neat feature of ~sed~ I will never be able to write
+myself ever again.
 
 #+BEGIN_SRC bash :tangle bin/cleopatra-update-gitignore :shebang "#+/bin/bash"
 BEGIN_MARKER="# begin generated files"

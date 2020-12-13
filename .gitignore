@@ -5,12 +5,12 @@
 # begin generated files
 .cleopatra
 book.mk
-export-book.el
-style/main.sass
-code.mk
-export-cleopatra.el
-build.log
-src/dependencies.png
-code/
 book/
+build.log
+code.mk
+code/
+export-book.el
+export-cleopatra.el
+src/dependencies.png
+style/main.sass
 # end generated files
