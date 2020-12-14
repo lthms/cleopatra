@@ -132,7 +132,8 @@ PROCS := $(wildcard ${CLEOPATRA_GENERATION_PROCESSES}/*.org)
 
 init :
 	@cleopatra echo "Exporting" "generation process"
-	@cleopatra-run-elisp "${CLEOPATRA_DIRECTORY}/emacs.d/cleopatra-gen-proc.el" > build.log
+	@cleopatra-run-elisp "${CLEOPATRA_DIRECTORY}/emacs.d/cleopatra-gen-proc.el" \
+	      >build.log 2>&1
 	@cleopatra-gen-deps ${PROCS}
 #+END_SRC
 

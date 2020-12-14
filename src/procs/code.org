@@ -5,7 +5,8 @@
 #+BEGIN_SRC makefile :tangle code.mk
 code-prebuild :
 	@cleopatra echo "Exporting" "cleopatra"
-	@cleopatra exec -- cleopatra-run-elisp export-cleopatra.el >> build.log
+	@cleopatra exec -- cleopatra-run-elisp export-cleopatra.el \
+	      >>build.log 2>&1
 
 ARTIFACTS += code/ book/
 
