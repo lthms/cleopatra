@@ -111,7 +111,9 @@ CONFIGURE := .cleopatra
 
 #+BEGIN_SRC makefile :noweb-ref clean-recipes
 clean :
-	rm -rf ${ARTIFACTS}
+	@cleopatra echo Cleaning "Build artifacts"
+	@rm -rf ${ARTIFACTS}
+	@rm -rf .cleopatra/emacs.d/cache
 
 cleanall : clean
 	rm -rf ${CONFIGURE}
