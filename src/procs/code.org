@@ -8,11 +8,16 @@ code-prebuild :
 	@cleopatra exec -- cleopatra-run-elisp export-cleopatra.el \
 	      >>build.log 2>&1
 
-ARTIFACTS += code/ book/
+ARTIFACTS += code/
+
+ARCHIVE := book/cleopatra-dev.tar.gz
 
 code-build :
 	@cd code/; cargo install --path .
 	@cd code/; cargo doc
+	@cleopatra echo "Archiving" "cleopatra"
+	@tar --exclude="target" -czvf ${ARCHIVE} code/ \
+	      2>&1 >> build.log
 #+END_SRC
 
 #+BEGIN_SRC emacs-lisp :tangle export-cleopatra.el :noweb yes :exports none

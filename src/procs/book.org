@@ -3,7 +3,7 @@
 #+HTML_LINK_UP: ../procs.html
 
 #+BEGIN_SRC makefile :tangle book.mk
-ARTIFACTS += src/dependencies.png
+ARTIFACTS += src/dependencies.png book/
 
 book-prebuild :
 	@cleopatra echo Exporting "cleopatra book"
