@@ -64,6 +64,8 @@ mode and Babel.
 #+BEGIN_SRC emacs-lisp :noweb-ref cleopatra-el
 (defun cleopatra:configure ()
   (setq backup-inhibited t)
+  (setq org-html-doctype "html5")
+  (setq org-html-html5-fancy t)
   (setq org-src-fontify-natively t)
   (setq org-export-with-sub-superscripts nil)
   (setq org-confirm-babel-evaluate nil)
