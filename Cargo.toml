@@ -1,0 +1,11 @@
+[package]
+name = "cleopatra"
+version = "1.0.0-dev"
+edition = "2018"
+
+[dependencies]
+colored = "1.9"
+clap = "2.33"
+serde = { version = "*", features = ["derive"] }
+toml = "*"
+lazy_static = "*"

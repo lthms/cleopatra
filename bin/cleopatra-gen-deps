@@ -1,0 +1,10 @@
+#+/bin/bash
+out="${CLEOPATRA_DIRECTORY}/deps.mk"
+
+rm -f "${out}"
+touch "${out}"
+
+for proc in "$@"; do
+    proc_name=$(basename ${proc} ".org")
+    echo "include \${CLEOPATRA_DIRECTORY}/${proc_name}.deps.mk" >> "${out}"
+done
